@@ -6,7 +6,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 ROWS, COLS = 3, 3
 TILE_SIZE = 120
 GAP = 12
-TILE_COLOUR = (255, 100, 98)
+TILE_COLOUR = (0,0,0)
 BACKGROUND_COLOR = (142, 214, 88)
 TAB_BUTTON_COLOR = (255, 100, 98)
 TAB_BUTTON_COLOR_ACTIVE = (255, 100+30, 98+10)
@@ -21,14 +21,14 @@ tab_font = pygame.font.SysFont(None, 24)
 
 # --- Tab options ---
 num_soils = 5
-soil_labels = [f"Soil{i+1}" for i in range(num_soils)]
+soil_labels = ["Lose and well-draining", "Rich and well-draining", "Deep and Lose", "Loamy", "Well-draining"]
 soil_colors = [
     (139, 69, 19), (160, 82, 45), (205, 133, 63), (222, 184, 135), (244, 164, 96)
 ]
-num_plants = 4
-plant_labels = [f"Plant{i+1}" for i in range(num_plants)]
+num_plants = 5
+plant_labels = ["Carrots", "Potatoes", "Tomatoes", "Cucumbers", "Lentils"]
 plant_colors = [
-    (34, 139, 34), (60, 179, 113), (107, 142, 35), (154, 205, 50)
+    (237, 145, 33), (255,251,149), (255, 99, 71), (103,171,5), (126, 105, 95)
 ]
 num_fertilisers = 3
 fertiliser_labels = [f"Fertiliser{i+1}" for i in range(num_fertilisers)]
@@ -46,6 +46,27 @@ class Tile:
         self.soil = None
         self.plant = None
         self.fertiliser = None
+        self.plant_time = None  # When the plant was planted
+        self.grown = False      # Is the plant grown?
+
+    def update_growth(self, now):
+        # Define allowed soils for each plant index
+        allowed_soils = {
+            0: [2],      # Carrots: Deep and Lose, Lose and well-draining
+            1: [0],      # Potatoes: Lose and well-draining, Well-draining
+            2: [1],      # Tomatoes: Rich and well-draining, Well-draining
+            3: [3],         # Cucumbers: Loamy
+            4: [4]          # Lentils: Well-draining
+        }
+        if self.plant is not None and self.plant_time is not None:
+            # Only grow if soil is compatible
+            if self.soil in allowed_soils.get(self.plant, []):
+                if not self.grown and now - self.plant_time >= 10:
+                    self.grown = True
+            else:
+                self.grown = False
+        else:
+            self.grown = False
 
     def draw(self, surf):
         # Fill
@@ -53,7 +74,12 @@ class Tile:
         pygame.draw.rect(surf, fill, self.rect, border_radius=12)
         # Plant outline
         if self.plant is not None:
-            pygame.draw.rect(surf, plant_colors[self.plant], self.rect, 4, border_radius=12)
+            color = plant_colors[self.plant]
+            pygame.draw.rect(surf, color, self.rect, 4, border_radius=12)
+            # If grown, draw a yellow border inside to indicate harvestable
+            if self.grown:
+                inner_rect = self.rect.inflate(-12, -12)
+                pygame.draw.rect(surf, (255, 215, 0), inner_rect, 4, border_radius=8)
         else:
             pygame.draw.rect(surf, (0, 0, 0), self.rect, 2, border_radius=12)
         # Fertiliser outer outline
@@ -74,14 +100,18 @@ tab_width = 300
 tab_button_width = 80
 tab_button_height = 30
 option_height = 20
-option_width = 100
+option_width = 200
 option_spacing = 3
+
+import time
 
 running = True
 while running:
+    now = time.time()
     screen.fill((BACKGROUND_COLOR))
-    # Draw all tiles
+    # Update growth for all tiles
     for tile in tiles:
+        tile.update_growth(now)
         tile.draw(screen)
 
     # Draw tab popup for selected tile
@@ -183,8 +213,14 @@ while running:
                 # Check if a tile was clicked
                 for tile in tiles:
                     if tile.rect.collidepoint(event.pos):
-                        selected_tile = tile
-                        tab_active = True
+                        # If plant is grown, harvest it
+                        if tile.plant is not None and tile.grown:
+                            tile.plant = None
+                            tile.plant_time = None
+                            tile.grown = False
+                        else:
+                            selected_tile = tile
+                            tab_active = True
                         break
             elif tab_active and selected_tile is not None:
                 # Tab selection buttons
@@ -221,6 +257,8 @@ while running:
                         )
                         if option_rect.collidepoint(event.pos):
                             selected_tile.plant = idx
+                            selected_tile.plant_time = time.time()
+                            selected_tile.grown = False
                 elif active_tab == "fertiliser":
                     for idx in range(num_fertilisers):
                         option_rect = pygame.Rect(
