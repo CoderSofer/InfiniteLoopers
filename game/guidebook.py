@@ -46,22 +46,21 @@ class BookScene():
         self.item = Items(self.rectangle)
 
         #names have to be unique otherwise it will not display items correctly
-        self.item.addItemToGuideBook("Carrot", 4, "image.png", "insert description", "Plant")
-        self.item.addItemToGuideBook("Potatoes", 4, "image.png", "insert description", "Plant")
-        self.item.addItemToGuideBook("Tomatoes", 4, "image.png", "insert description", "Plant")
-        self.item.addItemToGuideBook("Cucumbers", 4, "image.png", "insert description", "Plant")
-        self.item.addItemToGuideBook("Lentils", 4, "image.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Carrot", 4, "./game/images/Vegetables/carrot.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Potatoes", 4, "./game/images/Vegetables/potato.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Tomatoes", 4, "./game/images/Vegetables/tomato.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Cucumbers", 4, "./game/images/Vegetables/cucumber.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Lentils", 4, "./game/images/Vegetables/lentil.png", "insert description", "Plant")
         
-        self.item.addItemToGuideBook("Deep Loose", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Loose, Well-Drained", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Rich, Well-Drained", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Loamy", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Well-Drained Alkaline", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Slightly Acidic", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Deep, Loose", 8, "./game/images/Soils/Deep & Loose.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loose, Well-Drained", 8, "./game/images/Soils/Loose & well-draining.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Rich, Well-Drained", 8, "./game/images/Soils/Rich & well-draining.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loamy", 8, "./game/images/Soils/Loamy.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Well-draining", 8, "./game/images/Soils/Well-draining.png", "insert description", "Soil")
 
-        self.item.addItemToGuideBook("Nitrogen", 8, "image.png", "insert description", "Fertiliser")
-        self.item.addItemToGuideBook("Phosphorus", 8, "image.png", "insert description", "Fertiliser")
-        self.item.addItemToGuideBook("Potassium", 8, "image.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Nitrogen", 8, "./game/images/Vegetables/fertiliser.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Phosphorus", 8, "./game/images/Vegetables/fertiliser.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Potassium", 8, "./game/images/Vegetables/fertiliser.png", "insert description", "Fertiliser")
 
 
 
@@ -112,6 +111,8 @@ class Items():
         text = font.render((string), True, (0,0,0))
         center_position = text.get_rect(topleft=(rectx + rect.width/2 - text_width/2 ,recty - text_height))
         screen.blit(text, center_position)
+
+        return text_height
     
     def displayItems(self, category):
 
@@ -136,12 +137,15 @@ class Items():
             
             self.item_list[key]["rect"] = pygame.draw.rect(screen, self.item_list[key]["colour"], pygame.Rect(posx + self.SPACING, posy + self.VERTICAL_SPACING, WIDTH, HEIGHT))
             addToArrayOfItems(key, self.item_list[key], self.item_list[key]["category"])
-
             self.SPACING = self.SPACING + WIDTH + 15
+            text_height = self.produceText(text_font_size, self.item_list[key]["rect"], str(key))
 
-            # add value to rectangle
+            #Images
+            img = pygame.image.load(self.item_list[key]["image"])
+            image_small = pygame.transform.scale(img, (WIDTH, HEIGHT - text_height))
+            screen.blit(image_small, self.item_list[key]["rect"].topleft)
+            pygame.display.flip()
 
-            self.produceText(text_font_size, self.item_list[key]["rect"], str(key))
 
             pygame.display.update()
 
