@@ -187,7 +187,7 @@ class createButtons():
         addToArrayOfMenus(rect, string)
         
 
-pygame.init()
+# pygame.init()
 
 pygame.display.set_caption('Testing')
 screen = pygame.display.set_mode((800,600))
@@ -195,11 +195,11 @@ screen.fill((234, 212, 200))
 book = BookScene(screen)
 pygame.display.flip()
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+# running = True
+# while running:
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             running = False
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
 

@@ -1,11 +1,11 @@
 # game/shop_popup.py
 from __future__ import annotations
 import pygame
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, List
 
-# ---- Colors / layout (safe at import) ----
-COL_PANEL_BG = (220, 220, 220)
-COL_PANEL_BORDER = (0, 0, 0)
+# ---- Colors / layout ----
+COL_PANEL_BG = (255, 255, 255)
+#COL_PANEL_BORDER = (255, 255, 255)
 COL_BTN = (190, 190, 190)
 COL_BTN_ACTIVE = (160, 160, 160)
 COL_GOOD = (100, 200, 100)
@@ -15,179 +15,176 @@ COL_DISABLED = (180, 180, 180)
 COL_SCROLL_TRACK = (210, 210, 210)
 COL_SCROLL_THUMB = (150, 150, 150)
 
-# Layout knobs
+# Layout
 OPTION_H = 22
 OPTION_SPACING = 6
-TAB_WIDTH = 400
-TAB_HEADER_H = 72       # title + top tabs row
-SUBTAB_H = 28           # subtab row height (Buy/Inventory)
-PANEL_HEIGHT = 320      # fixed height, scroll inside
+# Just a label now; actual size is computed responsively in _shop_rect
+TAB_WIDTH = 640
+TAB_HEADER_H = 72
+SUBTAB_H = 28
+PANEL_HEIGHT = 420
 CONTENT_PAD = 8
 SCROLL_STEP = 40
 
-def clamp(v, lo, hi): 
-    return max(lo, min(hi, v))
+def clamp(v, lo, hi): return max(lo, min(hi, v))
 
+def _find_by_name(items: List[Dict], name: str) -> int:
+    for i, it in enumerate(items):
+        if it.get("name") == name:
+            return i
+    return -1
 
 class ShopPopup:
     """
-    Self-contained Shop overlay (tabs, subtabs, scroll) with NO pygame.init at import time.
-    Call:
-      - shop = ShopPopup(fonts={'tab': tab_font, 'title': title_font})
-      - if open toggle from your FieldScene button: shop.draw(screen, grid_geom)
-      - route events to shop.handle_event(event, grid_geom)
-
-    grid_geom = dict(
-       start_x=..., start_y=..., cols=..., rows=..., tile_size=..., gap=...
-    )
+    Separate Store (stock) vs Inventory (owned).
+    - Store rows: {"name","price","stock", ...}
+    - Inventory rows: {"name","qty", ...}
     """
+    def __init__(self, fonts: Dict[str, pygame.font.Font] | None = None, *, money: int = 0):
+        fonts = fonts or {}
+        self.font_tab   = fonts.get('tab')   or pygame.font.SysFont(None, 18)
+        self.font_title = fonts.get('title') or pygame.font.SysFont(None, 22)
 
-    def __init__(self, fonts: Dict[str, pygame.font.Font], *, money: int = 200):
-        # fonts: expect keys 'tab' and 'title'
-        self.font_tab = fonts.get('tab')
-        self.font_title = fonts.get('title', self.font_tab)
+        # -------- Store (coins needed + quantity available) --------
+        self.store_seeds: List[Dict] = [
+            {"name": "Carrot Seeds",   "price": 1,  "stock": 50},
+            {"name": "Potato Seeds",   "price": 3,  "stock": 30},
+            {"name": "Tomato Seeds",   "price": 9,  "stock": 25},
+            {"name": "Cucumber Seeds", "price": 12, "stock": 15},
+            {"name": "Lentil Seeds",   "price": 15, "stock": 5},
+        ]
+        self.store_ferts: List[Dict] = [
+            {"name": "Fertiliser A", "price": 25, "stock": 6},
+            {"name": "Fertiliser B", "price": 35, "stock": 5},
+            {"name": "Fertiliser C", "price": 50, "stock": 3},
+        ]
+        self.store_tools: List[Dict] = [
+            {"name": "Hoe",          "price": 40, "stock": 3, "color": (255,170,80)},
+            {"name": "Watering Can", "price": 60, "stock": 2, "color": (120,200,255)},
+            {"name": "Scythe",       "price": 85, "stock": 1, "color": (200,200,200)},
+            {"name": "Axe",          "price": 75, "stock": 1, "color": (240,120,120)},
+        ]
 
-        # ---- Game state (you can replace with your own) ----
+        # -------- Inventory --------
+        self.inv_seeds: List[Dict] = [
+            {"name": "Carrot Seeds",   "qty": 1, "price": 8},
+            {"name": "Potato Seeds",   "qty": 0, "price": 12},
+            {"name": "Tomato Seeds",   "qty": 0, "price": 6},
+            {"name": "Cucumber Seeds", "qty": 0, "price": 10},
+            {"name": "Lentils Seeds",  "qty": 0, "price": 20},]
+        self.inv_ferts: List[Dict] = []
+        self.inv_tools: List[Dict] = []
+        self.inv_crops: List[Dict] = [
+            {"name": "Carrot",   "qty": 0, "price": 8},
+            {"name": "Potato",   "qty": 0, "price": 12},
+            {"name": "Tomato",   "qty": 0, "price": 6},
+            {"name": "Cucumber", "qty": 0, "price": 10},
+            {"name": "Lentils",  "qty": 0, "price": 20},
+        ]
+
         self.money = money
-
-        # SELL: crops & prices
-        self.crops = {"Wheat": 3, "Corn": 2, "Potato": 0, "Strawberry": 5}
-        self.sell_prices = {"Wheat": 8, "Corn": 12, "Potato": 6, "Strawberry": 20}
-
-        # BUY: sections
-        self.shop_seeds = [
-            {"name": "Wheat Seeds", "price": 4},
-            {"name": "Corn Seeds", "price": 6},
-            {"name": "Potato Seeds", "price": 5},
-            {"name": "Strawberry Seeds", "price": 12},
-            {"name": "Pumpkin Seeds", "price": 15},
-        ]
-        self.shop_dirt = [
-            {"name": "Loam", "price": 15},
-            {"name": "Sandy", "price": 10},
-            {"name": "Clay", "price": 18},
-            {"name": "Compost Soil", "price": 22},
-        ]
-        self.shop_ferts = [
-            {"name": "Fertiliser A", "price": 25},
-            {"name": "Fertiliser B", "price": 35},
-            {"name": "Fertiliser C", "price": 50},
-        ]
-        self.shop_tools = [
-            {"name": "Hoe", "price": 40, "color": (255,170,80)},
-            {"name": "Watering Can", "price": 60, "color": (120,200,255)},
-            {"name": "Scythe", "price": 85, "color": (200,200,200)},
-            {"name": "Axe", "price": 75, "color": (240,120,120)},
-        ]
-
-        # INVENTORY mirrors
-        self.inv_seeds = {"Wheat Seeds": 0, "Corn Seeds": 0, "Potato Seeds": 0, "Strawberry Seeds": 0}
-        self.inv_dirt  = {"Loam": 0, "Sandy": 0, "Clay": 0, "Compost Soil": 0}
-        self.inv_ferts = {"Fertiliser A": 0, "Fertiliser B": 0, "Fertiliser C": 0}
-        self.tools_owned = []  # list of {"name","color"}
-        self.equipped_tool: Optional[int] = None
+        self.equipped_tool: Optional[int] = None  # index into inv_tools
 
         # ---- UI state ----
-        self.active = True                 # the popup is visible when True
-        self.active_tab = "buy"            # "buy" | "sell" | "inventory"
-        self.buy_subtab = "seeds"          # "seeds" | "dirt" | "ferts" | "tools"
-        self.inv_subtab = "seeds"          # "seeds" | "dirt" | "ferts" | "tools" | "crops"
+        self.active = True
+        self.active_tab = "buy"
+        self.buy_subtab = "seeds"
+        self.inv_subtab = "seeds"
 
-        # scroll offsets per-(tab,subtab)
         self.scroll = {
-            "buy:seeds": 0, "buy:dirt": 0, "buy:ferts": 0, "buy:tools": 0,
+            "buy:seeds": 0, "buy:ferts": 0, "buy:tools": 0,
             "sell": 0,
-            "inv:seeds": 0, "inv:dirt": 0, "inv:ferts": 0, "inv:tools": 0, "inv:crops": 0,
+            "inv:seeds": 0, "inv:ferts": 0, "inv:tools": 0, "inv:crops": 0,
         }
-        # drag state
         self.scroll_dragging = False
         self.drag_key = None
         self.drag_anchor_y = 0
         self.drag_anchor_scroll = 0
 
-    # ----------------- geometry helpers -----------------
+    # ---------------- data helpers ----------------
+    def _store_for(self, subtab: str) -> List[Dict]:
+        return {"seeds": self.store_seeds, "ferts": self.store_ferts, "tools": self.store_tools}[subtab]
+    def _inv_for(self, subtab: str) -> List[Dict]:
+        return {"seeds": self.inv_seeds, "ferts": self.inv_ferts, "tools": self.inv_tools, "crops": self.inv_crops}[subtab]
+    def _owned_qty(self, inv_list: List[Dict], name: str) -> int:
+        i = _find_by_name(inv_list, name); return 0 if i < 0 else int(inv_list[i].get("qty", 0))
+    def _add_to_inventory(self, inv_list: List[Dict], name: str, delta: int, **extra):
+        i = _find_by_name(inv_list, name)
+        if i < 0: inv_list.append({"name": name, "qty": max(0, delta), **extra})
+        else:     inv_list[i]["qty"] = max(0, inv_list[i]["qty"] + delta)
+    def _dec_store_stock(self, store_list: List[Dict], name: str, delta: int = 1) -> bool:
+        i = _find_by_name(store_list, name)
+        if i >= 0 and store_list[i]["stock"] >= delta:
+            store_list[i]["stock"] -= delta
+            return True
+        return False
+    def _visible(self, items: List[Dict]) -> List[Dict]:
+        return [it for it in items if it.get("qty", 0) > 0]
+
+    # ---------------- geometry helpers ----------------
     def _grid_rect(self, g: Dict) -> pygame.Rect:
-        """Rectangle that bounds the grid area (for anchoring the popup)."""
         grid_w = g["cols"] * g["tile_size"] + (g["cols"] - 1) * g["gap"]
         grid_h = g["rows"] * g["tile_size"] + (g["rows"] - 1) * g["gap"]
         return pygame.Rect(g["start_x"], g["start_y"], grid_w, grid_h)
 
-    # replace your existing _shop_rect with this version
     def _shop_rect(self, g: Dict, sw: int, sh: int) -> pygame.Rect:
+        """Responsive sizing with generous minimums."""
         grid_w = g["cols"] * g["tile_size"] + (g["cols"] - 1) * g["gap"]
         grid_h = g["rows"] * g["tile_size"] + (g["rows"] - 1) * g["gap"]
         grid_r = pygame.Rect(g["start_x"], g["start_y"], grid_w, grid_h)
 
-        # keep the panel within the window
-        w = min(TAB_WIDTH, max(200, sw - 16))   # never wider than screen
-        h = min(PANEL_HEIGHT, max(160, sh - 16))
+        # target ~60% of screen width, ~75% of height
+        desired_w = int(sw * 0.60)
+        desired_h = int(sh * 0.75)
+        w = clamp(max(TAB_WIDTH, desired_w), 520, sw - 16)   # bigger minimums
+        h = clamp(max(PANEL_HEIGHT, desired_h), 360, sh - 16)
 
         # prefer right of the grid
         x = grid_r.right + 16
         y = grid_r.top
-
-        # if it doesn't fit on the right, try left of the grid
+        # try left if it doesn't fit
         if x + w > sw:
             alt_x = grid_r.left - 16 - w
             x = alt_x if alt_x >= 0 else max(0, sw - w)
-
         # clamp vertically
         if y + h > sh:
             y = max(0, sh - h)
-
         return pygame.Rect(x, y, w, h)
-
 
     def _content_clip(self, shop_rect: pygame.Rect, include_subtabs: bool) -> pygame.Rect:
         top = shop_rect.y + TAB_HEADER_H + (SUBTAB_H + 8 if include_subtabs else 0)
         return pygame.Rect(
             shop_rect.x + CONTENT_PAD, top,
-            TAB_WIDTH - 2 * CONTENT_PAD - 10,     # 10px for scrollbar
-            PANEL_HEIGHT - (top - shop_rect.y) - CONTENT_PAD
+            shop_rect.w - 2 * CONTENT_PAD - 10,  # minus scrollbar
+            shop_rect.h - (top - shop_rect.y) - CONTENT_PAD
         )
 
     def _calc_content_height(self, key: str) -> int:
         def rows(n): return n * (OPTION_H + OPTION_SPACING)
-        if key == "sell":
-            return rows(len(self.crops))
+        if key == "sell": return rows(len(self._visible(self.inv_crops)))
         ktab, ksub = (key.split(":") + [""])[:2]
-        if ktab == "buy":
-            if ksub == "seeds": return rows(len(self.shop_seeds))
-            if ksub == "dirt":  return rows(len(self.shop_dirt))
-            if ksub == "ferts": return rows(len(self.shop_ferts))
-            if ksub == "tools": return rows(len(self.shop_tools))
-        if ktab == "inv":
-            if ksub == "seeds": return rows(len(self.inv_seeds))
-            if ksub == "dirt":  return rows(len(self.inv_dirt))
-            if ksub == "ferts": return rows(len(self.inv_ferts))
-            if ksub == "tools": return rows(len(self.tools_owned))
-            if ksub == "crops": return rows(len(self.crops))
+        if ktab == "buy": return rows(len(self._store_for(ksub)))
+        if ktab == "inv": return rows(len(self._visible(self._inv_for(ksub))))
         return 0
 
-    # ----------------- drawing primitives -----------------
+    # ---------------- drawing primitives ----------------
     def _draw_tab_button(self, surface, rect, label, active):
         pygame.draw.rect(surface, COL_BTN_ACTIVE if active else COL_BTN, rect)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, rect, 2)
-        lbl = self.font_tab.render(label, True, COL_TEXT)
-        surface.blit(lbl, (rect.x + 6, rect.y + 4))
+        #pygame.draw.rect(surface, COL_PANEL_BORDER, rect, 2)
+        surface.blit(self.font_tab.render(label, True, COL_TEXT), (rect.x + 6, rect.y + 4))
 
     def _draw_subtabs(self, surface, shop_rect, current, y, include_crops=False):
-        labels = [("seeds", "Seeds"), ("dirt", "Dirt"), ("ferts", "Fertilisers"), ("tools", "Tools")]
-        if include_crops:
-            labels.append(("crops", "Crops"))
-        rects = {}
-        x = shop_rect.x + 8
-        w = 84
+        labels = [("seeds", "Seeds"), ("ferts", "Fertilisers"), ("tools", "Tools")]
+        if include_crops: labels.append(("crops", "Crops"))
+        x = shop_rect.x + 8; w = 84; out = {}
         for key, label in labels:
             r = pygame.Rect(x, y, w, 24)
             self._draw_tab_button(surface, r, label, current == key)
-            rects[key] = r
-            x += w + 6
-        return rects
+            out[key] = r; x += w + 6
+        return out
 
     def _draw_scrollbar(self, surface, key, content_clip, content_h):
-        if content_h <= content_clip.h:
-            return None
+        if content_h <= content_clip.h: return None
         track = pygame.Rect(content_clip.right + 2, content_clip.y, 8, content_clip.h)
         pygame.draw.rect(surface, COL_SCROLL_TRACK, track)
         ratio = content_clip.h / max(1, content_h)
@@ -197,27 +194,21 @@ class ShopPopup:
         thumb_y = track.y + int((track.h - thumb_h) * pos_ratio)
         thumb = pygame.Rect(track.x, thumb_y, track.w, thumb_h)
         pygame.draw.rect(surface, COL_SCROLL_THUMB, thumb)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, track, 1)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, thumb, 1)
+        # pygame.draw.rect(surface, COL_PANEL_BORDER, track, 1)
+        # pygame.draw.rect(surface, COL_PANEL_BORDER, thumb, 1)
         return track, thumb, max_scroll
 
-    # ----------------- PUBLIC: draw + events -----------------
+    # ---------------- PUBLIC: draw + events ----------------
     def draw(self, surface: pygame.Surface, grid_geom: Dict) -> None:
-        """Render the entire popup shop."""
-        if not self.active:
-            return
-
+        if not self.active: return
         sw, sh = surface.get_size()
         shop_rect = self._shop_rect(grid_geom, sw, sh)
 
-        # Panel
         pygame.draw.rect(surface, COL_PANEL_BG, shop_rect)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, shop_rect, 2)
+        #pygame.draw.rect(surface, COL_PANEL_BORDER, shop_rect, 2)
 
-        # Header (title + money + close)
-        title_text = self.font_title.render("Farm Shop", True, COL_TEXT)
-        surface.blit(title_text, (shop_rect.x + 8, shop_rect.y + 8))
-
+        # Header
+        surface.blit(self.font_title.render("Farm Shop", True, COL_TEXT), (shop_rect.x + 8, shop_rect.y + 8))
         close_size = 18
         close_rect = pygame.Rect(shop_rect.right - close_size - 8, shop_rect.y + 8, close_size, close_size)
         pygame.draw.rect(surface, COL_BAD, close_rect)
@@ -225,9 +216,7 @@ class ShopPopup:
         surface.blit(x_txt, x_txt.get_rect(center=close_rect.center))
 
         money_text = self.font_title.render(f"${self.money}", True, COL_TEXT)
-        money_x = close_rect.x - 8 - money_text.get_width()
-        money_y = shop_rect.y + 8
-        surface.blit(money_text, (money_x, money_y))
+        surface.blit(money_text, (close_rect.x - 8 - money_text.get_width(), shop_rect.y + 8))
 
         # Tabs
         tab_w, tab_h = 70, 24
@@ -235,218 +224,167 @@ class ShopPopup:
         buy_tab_rect  = pygame.Rect(shop_rect.x + 8, tab_y, tab_w, tab_h)
         sell_tab_rect = pygame.Rect(buy_tab_rect.right + 8, tab_y, tab_w, tab_h)
         inv_tab_rect  = pygame.Rect(sell_tab_rect.right + 8, tab_y, tab_w + 30, tab_h)
-
         self._draw_tab_button(surface, buy_tab_rect, "Buy", self.active_tab == "buy")
         self._draw_tab_button(surface, sell_tab_rect, "Sell", self.active_tab == "sell")
         self._draw_tab_button(surface, inv_tab_rect,  "Inventory", self.active_tab == "inventory")
 
-        # Content area
+        # Content frame
         if self.active_tab in ("buy", "inventory"):
             subtab_y = shop_rect.y + 34 + tab_h + 6
             current = self.buy_subtab if self.active_tab == "buy" else self.inv_subtab
-            _ = self._draw_subtabs(surface, shop_rect, current, subtab_y, include_crops=(self.active_tab == "inventory"))
+            self._draw_subtabs(surface, shop_rect, current, subtab_y, include_crops=(self.active_tab == "inventory"))
             content_clip = self._content_clip(shop_rect, include_subtabs=True)
             current_key = f"{'buy' if self.active_tab=='buy' else 'inv'}:{current}"
         else:
             content_clip = self._content_clip(shop_rect, include_subtabs=False)
             current_key = "sell"
 
-        pygame.draw.rect(surface, (235, 235, 235), content_clip)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, content_clip, 1)
+        pygame.draw.rect(surface, (235,235,235), content_clip)
+        #pygame.draw.rect(surface, COL_PANEL_BORDER, content_clip, 1)
         content_surf = surface.subsurface(content_clip)
-        
-        if content_clip.w <= 0 or content_clip.h <= 0:
-            return
+        if content_clip.w <= 0 or content_clip.h <= 0: return
 
-        # Render list items (with scroll)
         y_cursor = -self.scroll[current_key]
 
+        # ---- BUY (responsive right-aligned columns) ----
         if current_key.startswith("buy:"):
             sect = current_key.split(":")[1]
-            if sect == "seeds":
-                data = self.shop_seeds
-                for item in data:
-                    row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                    if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(item["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"${item['price']}", True, COL_TEXT), (row.x + 160, row.y + 2))
-                        btn = pygame.Rect(row.right - 60, row.y + 2, 56, row.h - 4)
-                        pygame.draw.rect(content_surf, COL_GOOD if self.money >= item["price"] else COL_DISABLED, btn); pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
-                        content_surf.blit(self.font_tab.render("Buy", True, COL_TEXT), (btn.x + 12, btn.y + 2))
-                    y_cursor += OPTION_H + OPTION_SPACING
+            store_list = self._store_for(sect)
+            inv_list   = self._inv_for(sect)
 
-            elif sect == "dirt":
-                data = self.shop_dirt
-                for item in data:
-                    row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                    if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(item["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"${item['price']}", True, COL_TEXT), (row.x + 160, row.y + 2))
-                        btn = pygame.Rect(row.right - 60, row.y + 2, 56, row.h - 4)
-                        pygame.draw.rect(content_surf, COL_GOOD if self.money >= item["price"] else COL_DISABLED, btn); pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
-                        content_surf.blit(self.font_tab.render("Buy", True, COL_TEXT), (btn.x + 12, btn.y + 2))
-                    y_cursor += OPTION_H + OPTION_SPACING
-
-            elif sect == "ferts":
-                data = self.shop_ferts
-                for item in data:
-                    row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                    if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(item["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"${item['price']}", True, COL_TEXT), (row.x + 160, row.y + 2))
-                        btn = pygame.Rect(row.right - 60, row.y + 2, 56, row.h - 4)
-                        pygame.draw.rect(content_surf, COL_GOOD if self.money >= item["price"] else COL_DISABLED, btn); pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
-                        content_surf.blit(self.font_tab.render("Buy", True, COL_TEXT), (btn.x + 12, btn.y + 2))
-                    y_cursor += OPTION_H + OPTION_SPACING
-
-            elif sect == "tools":
-                data = self.shop_tools
-                for tool in data:
-                    row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                    if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        icon = pygame.Rect(row.x + 6, row.y + 3, 16, 16)
-                        pygame.draw.rect(content_surf, tool["color"], icon)
-                        content_surf.blit(self.font_tab.render(tool["name"], True, COL_TEXT), (icon.right + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"${tool['price']}", True, COL_TEXT), (row.x + 200, row.y + 2))
-                        btn = pygame.Rect(row.right - 70, row.y + 2, 66, row.h - 4)
-                        pygame.draw.rect(content_surf, COL_GOOD if self.money >= tool["price"] else COL_DISABLED, btn); pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
-                        content_surf.blit(self.font_tab.render("Buy Tool", True, COL_TEXT), (btn.x + 4, btn.y + 2))
-                    y_cursor += OPTION_H + OPTION_SPACING
-
-        elif current_key == "sell":
-            for crop_name, qty in self.crops.items():
+            for it in store_list:
                 row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                 if row.bottom >= 0 and row.top <= content_clip.h:
                     pygame.draw.rect(content_surf, (240,240,240), row)
-                    pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                    #pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
 
-                    # reserve space for buttons right side
-                    BTN_W, BTN_H, GAP, PAD = 58, row.h - 4, 6, 6
+                    # Right-side layout: [ ... name ... | price | stock | BUY ]
+                    # Right-side layout: [ ... name ... | price | stock | BUY ]
+                    PAD = 6
+                    BUY_W = 56
+                    buy_btn = pygame.Rect(row.right - PAD - BUY_W, row.y + 2, BUY_W, row.h - 4)
+
+                    # render texts
+                    price_s = self.font_tab.render(f"${it['price']}", True, COL_TEXT)
+                    price_x = buy_btn.x - PAD - price_s.get_width()
+
+                    stock_s = self.font_tab.render(f"Stock: {it['stock']}", True, COL_TEXT)
+                    stock_x = price_x - PAD - stock_s.get_width()   # <-- use stock_s width
+
+                    # optional icon + name (unchanged)
+                    x_text = row.x + 6
+                    if sect == "tools" and "color" in it:
+                        icon = pygame.Rect(row.x + 6, row.y + 3, 16, 16)
+                        pygame.draw.rect(content_surf, it["color"], icon)
+                        x_text = icon.right + 6
+
+                    # draw price and stock in the new order
+                    content_surf.blit(price_s, (price_x, row.y + 2))
+                    content_surf.blit(stock_s, (stock_x, row.y + 2))
+
+                    # "Own:" goes to the left of whichever (price/stock) is leftmost
+                    owned = self._owned_qty(inv_list, it["name"])
+                    own_s = self.font_tab.render(f"Own: {owned}", True, COL_TEXT)
+                    anchor_x = min(price_x, stock_x)
+                    own_x = anchor_x - PAD - own_s.get_width()
+                    if own_x > x_text + 80:
+                        content_surf.blit(own_s, (own_x, row.y + 2))
+
+                    # name
+                    content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (x_text, row.y + 2))
+
+                    # buy button (unchanged)
+                    can_buy = (self.money >= it["price"]) and (it["stock"] > 0)
+                    pygame.draw.rect(content_surf, COL_GOOD if can_buy else COL_DISABLED, buy_btn)
+                    #pygame.draw.rect(content_surf, COL_PANEL_BORDER, buy_btn, 1)
+                    content_surf.blit(self.font_tab.render("Buy", True, COL_TEXT), (buy_btn.x + 12, buy_btn.y + 2))
+
+                y_cursor += OPTION_H + OPTION_SPACING
+
+        # ---- SELL (inventory crops only) ----
+        elif current_key == "sell":
+            for it in self._visible(self.inv_crops):
+                row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
+                if row.bottom >= 0 and row.top <= content_clip.h:
+                    pygame.draw.rect(content_surf, (240,240,240), row)
+                    #pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+
+                    BTN_W, BTN_H, GAP, PAD = 70, row.h - 4, 6, 6
                     block_w = BTN_W + GAP + BTN_W + PAD
                     text_right = row.right - block_w
 
-                    price_val = self.sell_prices.get(crop_name, 1)
-                    name_s = self.font_tab.render(crop_name, True, COL_TEXT)
-                    qty_s  = self.font_tab.render(f"x{qty}", True, COL_TEXT)
-                    price_s= self.font_tab.render(f"${price_val} ea", True, COL_TEXT)
+                    content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
+                    content_surf.blit(self.font_tab.render(f"x{it['qty']}", True, COL_TEXT), (row.x + 160, row.y + 2))
+                    price_s = self.font_tab.render(f"${it['price']} each", True, COL_TEXT)
+                    content_surf.blit(price_s, (text_right - price_s.get_width() - 6, row.y + 2))
 
-                    name_x  = row.x + 6
-                    qty_x   = name_x + 160
-                    price_x = text_right - price_s.get_width() - 6
-
-                    content_surf.blit(name_s,  (name_x, row.y + 2))
-                    content_surf.blit(qty_s,   (qty_x,  row.y + 2))
-                    content_surf.blit(price_s, (price_x,row.y + 2))
-
-                    can_sell = qty > 0
-                    sell1  = pygame.Rect(text_right + PAD,   row.y + 2, BTN_W, BTN_H)
-                    sellall= pygame.Rect(sell1.right + GAP,  row.y + 2, BTN_W, BTN_H)
-                    for r, label in ((sell1,"Sell1"), (sellall,"All")):
+                    can_sell = it["qty"] > 0
+                    sell1   = pygame.Rect(text_right + PAD,  row.y + 2, BTN_W, BTN_H)
+                    sellall = pygame.Rect(sell1.right + GAP, row.y + 2, BTN_W, BTN_H)
+                    for r, label in ((sell1,"Sell 1"), (sellall,"Sell All")):
                         pygame.draw.rect(content_surf, COL_BTN if can_sell else COL_DISABLED, r)
-                        pygame.draw.rect(content_surf, COL_PANEL_BORDER, r, 1)
+                        #pygame.draw.rect(content_surf, COL_PANEL_BORDER, r, 1)
                         content_surf.blit(self.font_tab.render(label, True, COL_TEXT), (r.x + 8, r.y + 2))
                 y_cursor += OPTION_H + OPTION_SPACING
 
+        # ---- INVENTORY ----
         else:
-            # Inventory subtabs
             sect = current_key.split(":")[1]
-            if sect == "seeds":
-                items = self.inv_seeds
-                for name, qty in items.items():
+            inv_list = self._visible(self._inv_for(sect))
+
+            if sect in ("seeds", "ferts"):
+                for it in inv_list:
                     row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                     if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(name, True, COL_TEXT), (row.x + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"x{qty}", True, COL_TEXT), (row.x + 200, row.y + 2))
+                        #pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                        content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
+                        content_surf.blit(self.font_tab.render(f"x{it['qty']}", True, COL_TEXT), (row.x + 200, row.y + 2))
                     y_cursor += OPTION_H + OPTION_SPACING
 
             elif sect == "crops":
-                for name, qty in self.crops.items():
+                for it in inv_list:
                     row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                     if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row)
-                        pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(name, True, COL_TEXT), (row.x + 6, row.y + 2))
-                        qty_lbl = self.font_tab.render(f"x{qty}", True, COL_TEXT)
+                        #pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                        content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
+                        qty_lbl = self.font_tab.render(f"x{it['qty']}", True, COL_TEXT)
                         content_surf.blit(qty_lbl, (row.right - qty_lbl.get_width() - 6, row.y + 2))
                     y_cursor += OPTION_H + OPTION_SPACING
 
-            elif sect == "dirt":
-                items = self.inv_dirt
-                for name, qty in items.items():
-                    row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                    if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(name, True, COL_TEXT), (row.x + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"x{qty}", True, COL_TEXT), (row.x + 200, row.y + 2))
-                    y_cursor += OPTION_H + OPTION_SPACING
-
-            elif sect == "ferts":
-                items = self.inv_ferts
-                for name, qty in items.items():
-                    row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                    if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
-                        content_surf.blit(self.font_tab.render(name, True, COL_TEXT), (row.x + 6, row.y + 2))
-                        content_surf.blit(self.font_tab.render(f"x{qty}", True, COL_TEXT), (row.x + 200, row.y + 2))
-                    y_cursor += OPTION_H + OPTION_SPACING
-
             elif sect == "tools":
-                for i, t in enumerate(self.tools_owned):
+                for i_abs, it in enumerate(inv_list):
                     row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                     if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                        #pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
                         icon = pygame.Rect(row.x + 6, row.y + 3, 16, 16)
-                        pygame.draw.rect(content_surf, t["color"], icon)
-                        content_surf.blit(self.font_tab.render(t["name"], True, COL_TEXT), (icon.right + 6, row.y + 2))
-                        is_eq = (self.equipped_tool == i)
-                        btn = pygame.Rect(row.right - 80, row.y + 2, 76, row.h - 4)
-                        pygame.draw.rect(content_surf, COL_BTN_ACTIVE if is_eq else COL_BTN, btn); pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
+                        pygame.draw.rect(content_surf, it.get("color", (200,200,200)), icon)
+                        content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (icon.right + 6, row.y + 2))
+                        is_eq = (self.equipped_tool == i_abs)
+                        btn = pygame.Rect(row.right - 90, row.y + 2, 86, row.h - 4)
+                        pygame.draw.rect(content_surf, COL_BTN_ACTIVE if is_eq else COL_BTN, btn)
+                        #pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
                         content_surf.blit(self.font_tab.render("Equipped" if is_eq else "Equip", True, COL_TEXT), (btn.x + 6, btn.y + 2))
                     y_cursor += OPTION_H + OPTION_SPACING
 
-        # Scrollbar
         content_h = self._calc_content_height(current_key)
-        _ = self._draw_scrollbar(surface, current_key, content_clip, content_h)
-
-        # Cache hit rects needed for events (recompute logic in handle_event)
-        # We recompute in handle_event to stay in sync with drawing math.
+        self._draw_scrollbar(surface, current_key, self._content_clip(shop_rect, include_subtabs=(self.active_tab in ("buy","inventory"))), content_h)
 
     def handle_event(self, event: pygame.event.Event, grid_geom: Dict, sw: int = None, sh: int = None) -> bool:
-        """
-        Returns True if the event was consumed by the popup.
-        Also updates `self.active` (False when closed).
-
-        sw, sh: optional screen width/height. If not provided they are read from pygame.display.
-        """
-        if not self.active:
-            return False
-
-        # derive screen size if caller didn't supply it
+        if not self.active: return False
         if sw is None or sh is None:
             surf = pygame.display.get_surface()
-            if surf:
-                sw, sh = surf.get_size()
-            else:
-                # fallback defaults
-                sw, sh = 800, 600
+            sw, sh = surf.get_size() if surf else (800, 600)
 
         shop_rect = self._shop_rect(grid_geom, sw, sh)
         include_sub = (self.active_tab in ("buy", "inventory"))
         content_clip = self._content_clip(shop_rect, include_subtabs=include_sub)
 
-        # -- close button area always clickable
         close_size = 18
         close_rect = pygame.Rect(shop_rect.right - close_size - 8, shop_rect.y + 8, close_size, close_size)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if close_rect.collidepoint(event.pos):
                 self.active = False
-                # stop scrolling drag whenever we close
                 self.scroll_dragging = False
                 self.drag_key = None
                 return True
@@ -457,23 +395,16 @@ class ShopPopup:
             buy_tab_rect  = pygame.Rect(shop_rect.x + 8, tab_y, tab_w, tab_h)
             sell_tab_rect = pygame.Rect(buy_tab_rect.right + 8, tab_y, tab_w, tab_h)
             inv_tab_rect  = pygame.Rect(sell_tab_rect.right + 8, tab_y, tab_w + 30, tab_h)
+            if buy_tab_rect.collidepoint(event.pos): self.active_tab = "buy"; return True
+            if sell_tab_rect.collidepoint(event.pos): self.active_tab = "sell"; return True
+            if inv_tab_rect.collidepoint(event.pos):  self.active_tab = "inventory"; return True
 
-            if buy_tab_rect.collidepoint(event.pos):
-                self.active_tab = "buy"; return True
-            if sell_tab_rect.collidepoint(event.pos):
-                self.active_tab = "sell"; return True
-            if inv_tab_rect.collidepoint(event.pos):
-                self.active_tab = "inventory"; return True
-
-            # Subtabs (for buy/inventory)
+            # Subtabs
             if include_sub:
                 sub_y = shop_rect.y + 34 + tab_h + 6
-                # Recreate subtab rects same as draw
-                labels = [("seeds","Seeds"), ("dirt","Dirt"), ("ferts","Fertilisers"), ("tools","Tools")]
-                if self.active_tab == "inventory":
-                    labels.append(("crops","Crops"))
-                x = shop_rect.x + 8
-                w = 84
+                labels = [("seeds","Seeds"), ("ferts","Fertilisers"), ("tools","Tools")]
+                if self.active_tab == "inventory": labels.append(("crops","Crops"))
+                x = shop_rect.x + 8; w = 84
                 for key, _label in labels:
                     r = pygame.Rect(x, sub_y, w, 24)
                     if r.collidepoint(event.pos):
@@ -483,7 +414,7 @@ class ShopPopup:
                     x += w + 6
 
             # Scrollbar drag start?
-            current_key = "sell" if self.active_tab=="sell" else (f"buy:{self.buy_subtab}" if self.active_tab=="buy" else f"inv:{self.inv_subtab}")
+            current_key = "sell" if self.active_tab == "sell" else (f"buy:{self.buy_subtab}" if self.active_tab=="buy" else f"inv:{self.inv_subtab}")
             content_h = self._calc_content_height(current_key)
             if content_h > content_clip.h:
                 track = pygame.Rect(content_clip.right + 2, content_clip.y, 8, content_clip.h)
@@ -506,74 +437,56 @@ class ShopPopup:
                 local_y = event.pos[1] - content_clip.y + self.scroll[current_key]
                 y_cursor = 0
 
+                # BUY click
                 if current_key.startswith("buy:"):
                     sect = current_key.split(":")[1]
-                    if sect == "seeds":
-                        for item in self.shop_seeds:
-                            row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                            btn = pygame.Rect(row.right - 60, row.y + 2, 56, row.h - 4)
-                            if btn.collidepoint((local_x, local_y)) and self.money >= item["price"]:
-                                self.money -= item["price"]; self.inv_seeds[item["name"]] += 1
-                                return True
-                            y_cursor += OPTION_H + OPTION_SPACING
-                    elif sect == "dirt":
-                        for item in self.shop_dirt:
-                            row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                            btn = pygame.Rect(row.right - 60, row.y + 2, 56, row.h - 4)
-                            if btn.collidepoint((local_x, local_y)) and self.money >= item["price"]:
-                                self.money -= item["price"]; self.inv_dirt[item["name"]] += 1
-                                return True
-                            y_cursor += OPTION_H + OPTION_SPACING
-                    elif sect == "ferts":
-                        for item in self.shop_ferts:
-                            row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                            btn = pygame.Rect(row.right - 60, row.y + 2, 56, row.h - 4)
-                            if btn.collidepoint((local_x, local_y)) and self.money >= item["price"]:
-                                self.money -= item["price"]; self.inv_ferts[item["name"]] += 1
-                                return True
-                            y_cursor += OPTION_H + OPTION_SPACING
-                    elif sect == "tools":
-                        for tool in self.shop_tools:
-                            row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                            btn = pygame.Rect(row.right - 70, row.y + 2, 66, row.h - 4)
-                            if btn.collidepoint((local_x, local_y)) and self.money >= tool["price"]:
-                                self.money -= tool["price"]; self.tools_owned.append({"name": tool["name"], "color": tool["color"]})
-                                if self.equipped_tool is None: self.equipped_tool = 0
-                                return True
-                            y_cursor += OPTION_H + OPTION_SPACING
+                    store_list = self._store_for(sect)
+                    inv_list   = self._inv_for(sect)
+                    for it in store_list:
+                        row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
+                        PAD = 6; BUY_W = 56
+                        buy_btn = pygame.Rect(row.right - PAD - BUY_W, row.y + 2, BUY_W, row.h - 4)
+                        if buy_btn.collidepoint((local_x, local_y)) and self.money >= it["price"] and it["stock"] > 0:
+                            if self._dec_store_stock(store_list, it["name"], 1):
+                                self.money -= it["price"]
+                                extra = {"color": it.get("color", (200,200,200))} if sect == "tools" else {}
+                                self._add_to_inventory(inv_list, it["name"], +1, **extra)
+                                if sect == "tools" and self.equipped_tool is None:
+                                    self.equipped_tool = _find_by_name(self.inv_tools, it["name"])
+                            return True
+                        y_cursor += OPTION_H + OPTION_SPACING
 
+                # SELL click
                 elif current_key == "sell":
-                    for crop_name, qty in list(self.crops.items()):
+                    for it in self._visible(self.inv_crops):
                         row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                         BTN_W, BTN_H, GAP, PAD = 58, row.h - 4, 6, 6
                         block_w = BTN_W + GAP + BTN_W + PAD
                         text_right = row.right - block_w
                         sell1   = pygame.Rect(text_right + PAD, row.y + 2, BTN_W, BTN_H)
                         sellall = pygame.Rect(sell1.right + GAP, row.y + 2, BTN_W, BTN_H)
-
-                        if sell1.collidepoint((local_x, local_y)) and qty > 0:
-                            self.crops[crop_name] -= 1; self.money += self.sell_prices.get(crop_name, 1); return True
-                        if sellall.collidepoint((local_x, local_y)) and qty > 0:
-                            amt = self.crops[crop_name]; self.crops[crop_name] = 0; self.money += amt * self.sell_prices.get(crop_name, 1); return True
+                        if sell1.collidepoint((local_x, local_y)) and it["qty"] > 0:
+                            it["qty"] -= 1; self.money += it["price"]; return True
+                        if sellall.collidepoint((local_x, local_y)) and it["qty"] > 0:
+                            amt = it["qty"]; it["qty"] = 0; self.money += amt * it["price"]; return True
                         y_cursor += OPTION_H + OPTION_SPACING
 
-                else:  # inventory
+                # INVENTORY clicks (equip tools)
+                else:
                     sect = current_key.split(":")[1]
                     if sect == "tools":
-                        for i, _t in enumerate(self.tools_owned):
+                        for i_abs, _t in enumerate(self._visible(self.inv_tools)):
                             row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
-                            equip_btn = pygame.Rect(row.right - 80, row.y + 2, 76, row.h - 4)
+                            equip_btn = pygame.Rect(row.right - 90, row.y + 2, 86, row.h - 4)
                             if equip_btn.collidepoint((local_x, local_y)):
-                                self.equipped_tool = i
+                                name = _t["name"]
+                                self.equipped_tool = _find_by_name(self.inv_tools, name)
                                 return True
                             y_cursor += OPTION_H + OPTION_SPACING
                     else:
-                        # seeds/dirt/ferts/crops are read-only here
                         return True
 
-            # If we got here and click was inside panel, consume it
-            if shop_rect.collidepoint(event.pos):
-                return True
+            if shop_rect.collidepoint(event.pos): return True
 
         elif event.type == pygame.MOUSEBUTTONUP:
             if self.scroll_dragging:
@@ -605,4 +518,4 @@ class ShopPopup:
                     self.scroll[current_key] = clamp(self.scroll[current_key] - event.y * SCROLL_STEP, 0, max_scroll)
                 return True
 
-        return False  # not consumed
+        return False
