@@ -11,30 +11,12 @@ BOOKMENU_COLOURS = { # Add button colours here!
 }
 
 def colourDictionary(string):
-
     for key in BOOKMENU_COLOURS:
         if string.upper() == key.upper():
             return BOOKMENU_COLOURS[key]
 
     return "not found"
 
-"""
-elif event.type == pygame.MOUSEBUTTONDOWN:
-    mouse_pos = pygame.mouse.get_pos()
-    
-    if current_tab != "Main":
-        if back_button_rect.collidepoint(mouse_pos):
-            current_tab = "Main"
-            book_scene = BookScene(screen)
-            pygame.display.flip()
-            continue
-
-    #check if any button was clicked
-    for rect, label in book_scene.buttons.buttons:
-        if rect.collidepoint(mouse_pos):
-        print(f"{label} tab clicked")
-        switch_tab(label)
-"""
 def addToArrayOfItems(name, item, category):
     array_of_items.setdefault(category, {})[name] = item
 
@@ -60,13 +42,28 @@ class BookScene():
         SCREEN_HEIGHT = self.scene.get_height()/2 - BOOK_HEIGHT/2
 
         self.rectangle = pygame.draw.rect(self.scene, BOOKMENU_COLOURS.get("DEFAULT"), pygame.Rect(SCREEN_WIDTH,SCREEN_HEIGHT,BOOK_WIDTH,BOOK_HEIGHT))
-
     def create_Items(self):
         self.item = Items(self.rectangle)
 
         #names have to be unique otherwise it will not display items correctly
-        self.item.addItemToGuideBook("name2", 4, "image.png", "new plant", "Plant")
-        self.item.addItemToGuideBook("name", 8, "image.png", "new bush", "Fertiliser")
+        self.item.addItemToGuideBook("Carrot", 4, "image.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Potatoes", 4, "image.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Tomatoes", 4, "image.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Cucumbers", 4, "image.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Lentils", 4, "image.png", "insert description", "Plant")
+        
+        self.item.addItemToGuideBook("Deep Loose Soil", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loose, Well-Drained Soil", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Rich, Well-Drained Soil", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loamy Soil", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Well-Drained Alkaline Soil", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Slightly Acidic Soil", 8, "image.png", "insert description", "Soil")
+
+        self.item.addItemToGuideBook("Nitrogen Fertiliser", 8, "image.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Phosphorus Fertiliser", 8, "image.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Potassium Fertiliser", 8, "image.png", "insert description", "Fertiliser")
+
+
 
     def create_buttons(self):
         buttons = createButtons(self.rectangle)
@@ -81,33 +78,9 @@ class BookScene():
         self.item.displayItems(category)
     
 class Items():
-    
-    """
-    Aim: Create new item
-
-    Requirements:
-    - Name
-    - Value
-    - Image (for now.. rectangle)
-    - Same dimensions for card (different for card in guidebook and outside of it)
-    - Colour
-    - Descriptions
-
-    Add new item
-    - Add card to guidebook DONE
-    - Retrieve everything except descriptions? DONE
-    (Consider: Let filter change what is displayed, or add hover over to reveal description)
-
-    When interact with item
-    - Create new card to the left of screen (movable?)
-    - Retrieve all the requirement list
-
-    Need to track position
-    - if it exceeds to the right, skip to next line
-    - add scroll if it exceeds downwards (later feature)
-    """
 
     SPACING = 0
+    VERTICAL_SPACING = 0
 
     def __init__(self, foundation):
         self.item_list = {}
@@ -156,8 +129,12 @@ class Items():
 
             if not (self.item_list[key]["category"] == category):
                 continue
-
-            self.item_list[key]["rect"] = pygame.draw.rect(screen, self.item_list[key]["colour"], pygame.Rect(posx + self.SPACING, posy, WIDTH, HEIGHT))
+            
+            if (posx + self.SPACING >= self.foundation.x + self.foundation.width - 20):
+                self.SPACING = 0
+                self.VERTICAL_SPACING += HEIGHT + 20
+            
+            self.item_list[key]["rect"] = pygame.draw.rect(screen, self.item_list[key]["colour"], pygame.Rect(posx + self.SPACING, posy + self.VERTICAL_SPACING, WIDTH, HEIGHT))
             addToArrayOfItems(key, self.item_list[key], self.item_list[key]["category"])
 
             self.SPACING = self.SPACING + WIDTH + 15
