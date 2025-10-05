@@ -6,33 +6,33 @@ import os
 
 # ---- Config / data ----
 SOIL_LABELS = ["Loose & well-draining", "Rich & well-draining", "Deep & Loose", "Loamy", "Well-draining"]
-SOIL_COLORS = [(139,69,19), (160,82,45), (205,133,63), (222,184,135), (244,164,96)]
+
 
 PLANT_LABELS = ["Carrots", "Potatoes", "Tomatoes", "Cucumbers", "Lentils"]
 PLANT_COLORS = [(237,145,33), (255,251,149), (255,99,71), (103,171,5), (126,105,95)]
 
-FERT_LABELS = [f"Fertiliser{i+1}" for i in range(3)]
+FERT_LABELS = ["Nitrogen", "Phosphorus", "potassium"]
 FERT_COLORS = [(255,215,0), (128,128,128), (255,255,255)]
 
 # Which soils are valid for each plant index
 ALLOWED_SOILS = {
-    0: [2],      # Carrots: Deep and Lose, Lose and well-draining
-    1: [0],      # Potatoes: Lose and well-draining, Well-draining
-    2: [1],      # Tomatoes: Rich and well-draining, Well-draining
+    0: [2],      # Carrots: Deep and Lose
+    1: [0],      # Potatoes: Lose and well-draining
+    2: [1],      # Tomatoes: Rich and well-draining
     3: [3],         # Cucumbers: Loamy
     4: [4]          # Lentils: Well-draining
 }
 
 DEFAULTS = {
     "ROWS": 3, "COLS": 3, "TILE_SIZE": 120, "GAP": 12,
-    "TILE_COLOUR": (107, 66, 40),
-    "BACKGROUND_COLOR": (245, 228, 156),
-    "TAB_BTN": (78, 177, 78),
-    "TAB_BTN_ACTIVE": (0, 118, 0),
+    "TILE_COLOUR": (0, 0, 0),
+    "BACKGROUND_COLOR": (142, 214, 88),
+    "TAB_BTN": (255, 100, 98),
+    "TAB_BTN_ACTIVE": (255, 130, 108),
 }
 
-SHOP_BTN_IDLE  = (78, 177, 78)
-SHOP_BTN_HOVER = (0, 118, 0)
+SHOP_BTN_IDLE  = (190, 190, 190)
+SHOP_BTN_HOVER = (160, 160, 160)
 SHOP_BTN_TEXT  = (0, 0, 0)
 SHOP_BTN_BORDER = (0, 0, 0)
 
@@ -48,8 +48,6 @@ PLANT_IMAGES = []
 for i in range(5):
     img_path = os.path.join(os.path.dirname(__file__), f'..', f'plant{i+1}.png')
     img = pygame.image.load(img_path)
-    # p_size = (int(img.get_width() *0.8), int(img.get_height() *0.8))
-    # img = pygame.transform.smoothscale(img, p_size)
     img = pygame.transform.smoothscale(img, (100,100))
     PLANT_IMAGES.append(img)
 
@@ -84,7 +82,7 @@ def compute_grid_start(sw, sh, cols, rows, tile, gap):
     return (sw - grid_w) // 2, (sh - grid_h) // 2
 
 class Tile:
-    def __init__(self, row, col, start_x, start_y, tile_size, gap, shop=None):
+    def __init__(self, row, col, start_x, start_y, tile_size, gap):
         self.row, self.col = row, col
         x = start_x + col * (tile_size + gap)
         y = start_y + row * (tile_size + gap)
@@ -94,7 +92,6 @@ class Tile:
         self.fertiliser = None
         self.plant_time = None
         self.grown = False
-        self.shop = shop
 
     def update_growth(self, now):
         if self.plant is None or self.plant_time is None:
@@ -107,23 +104,14 @@ class Tile:
             self.grown = False
 
     def draw(self, surf, tile_colour):
-        # Draw soil image if chosen
-        if self.soil is not None:
-            img = SOIL_IMAGES[self.soil]
-            mask = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
-            pygame.draw.rect(mask, (255,255,255,255), mask.get_rect(), border_radius=12)
-            rounded_img = img.copy()
-            rounded_img.blit(mask, (0,0), special_flags=pygame.BLEND_RGBA_MULT)
-            surf.blit(rounded_img, self.rect)
-        else:
-            pygame.draw.rect(surf, tile_colour, self.rect, border_radius=12)
+        fill = SOIL_COLORS[self.soil] if self.soil is not None else tile_colour
+        pygame.draw.rect(surf, fill, self.rect, border_radius=12)
 
         if self.plant is not None:
             pygame.draw.rect(surf, PLANT_COLORS[self.plant], self.rect, 4, border_radius=12)
             if self.grown:
-                img = PLANT_IMAGES[self.plant]
-                surf.blit(img, (self.rect.x + (self.rect.width - img.get_width()) // 2,
-                                self.rect.y + (self.rect.height - img.get_height()) // 2))
+                inner = self.rect.inflate(-12, -12)
+                pygame.draw.rect(surf, (255, 215, 0), inner, 4, border_radius=8)
         else:
             pygame.draw.rect(surf, (0, 0, 0), self.rect, 2, border_radius=12)
 
@@ -142,19 +130,17 @@ class FieldScene:
       - draw(surface)
       - handle_event(event)
     """
-    def __init__(self, screen_size, fonts=None, config=None, shop=None, sfx=None): 
+    def __init__(self, screen_size, fonts=None, config=None):
         self.w, self.h = screen_size
         self.cfg = {**DEFAULTS, **(config or {})}
         self.font = (fonts or {}).get("tab", pygame.font.SysFont(None, 24))
-        self.sfx = sfx
 
         self.start_x, self.start_y = compute_grid_start(
             self.w, self.h, self.cfg["COLS"], self.cfg["ROWS"], self.cfg["TILE_SIZE"], self.cfg["GAP"]
         )
 
-        self.shop = shop
         self.tiles = [
-            Tile(r, c, self.start_x, self.start_y, self.cfg["TILE_SIZE"], self.cfg["GAP"], shop=self.shop)
+            Tile(r, c, self.start_x, self.start_y, self.cfg["TILE_SIZE"], self.cfg["GAP"])
             for r in range(self.cfg["ROWS"]) for c in range(self.cfg["COLS"])
         ]
 
@@ -169,14 +155,6 @@ class FieldScene:
             self.cfg["COLS"], self.cfg["ROWS"],
             self.cfg["TILE_SIZE"], self.cfg["GAP"],
             anchor="top-right", size=(96, 28), offset=(0, 8)
-        )
-        # --- Guidebook button placed just left of the Shop button ---
-        self.want_guidebook = False
-        _bw, _bh = self.shop_button_rect.size
-        self.guide_button_rect = pygame.Rect(
-            self.shop_button_rect.x - _bw - 8,  # 8px gap to the left of Shop
-            self.shop_button_rect.y,
-            _bw, _bh
         )
 
 
@@ -199,32 +177,18 @@ class FieldScene:
         draw_shop_button(surface, self.shop_button_rect, self.font, hovered, label="Shop")
 
 
-        # Guidebook button
-        hovered_g = self.guide_button_rect.collidepoint(pygame.mouse.get_pos())
-        draw_shop_button(surface, self.guide_button_rect, self.font, hovered_g, label="Guide")
-
-
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = event.pos
             if self.shop_button_rect.collidepoint(pos):
                 self.shop_open = not self.shop_open
-                if self.sfx: self.sfx.play("CLICK")
-                return
-            if self.guide_button_rect.collidepoint(pos):
-                self.want_guidebook = True
-                if self.sfx: self.sfx.play("CLICK")
                 return
             if not self.tab_active:
                 for t in self.tiles:
                     if t.rect.collidepoint(pos):
+                        if self.sfx: self.sfx.play("CLICK")
                         # harvest if grown
                         if t.plant is not None and t.grown:
-                            # Add harvested crop to inventory
-                            if self.shop:
-                                crop_names = ["Carrot", "Potato", "Tomato", "Cucumber", "Lentils"]
-                                crop_name = crop_names[t.plant]
-                                self.shop._add_to_inventory(self.shop.inv_crops, crop_name, 1)
                             t.plant = None
                             t.plant_time = None
                             t.grown = False
@@ -235,14 +199,18 @@ class FieldScene:
             else:
                 # switch tabs
                 if self.ui.get("soil_btn") and self.ui["soil_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "soil"
                 if self.ui.get("plant_btn") and self.ui["plant_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "plants"
                 if self.ui.get("fert_btn") and self.ui["fert_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "fertiliser"
 
                 # close
                 if self.ui.get("close_btn") and self.ui["close_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.tab_active = False
                     self.selected = None
                     return
@@ -253,26 +221,13 @@ class FieldScene:
                     if rect.collidepoint(pos):
                         if self.active_tab == "soil":
                             self.selected.soil = idx
+                            if self.sfx: self.sfx.play("PICK")
                         elif self.active_tab == "plants":
-                            # Only allow planting if you own the seed
-                            if self.shop:
-                                seed_names = ["Carrot Seeds", "Potato Seeds", "Tomato Seeds", "Cucumber Seeds", "Lentil Seeds"]
-                                seed_name = seed_names[idx]
-                                qty = self.shop._owned_qty(self.shop.inv_seeds, seed_name)
-                                if qty > 0:
-                                    # If a seed is already planted, return it to inventory
-                                    prev_plant = self.selected.plant
-                                    if prev_plant is not None:
-                                        prev_seed_name = seed_names[prev_plant]
-                                        self.shop._add_to_inventory(self.shop.inv_seeds, prev_seed_name, 1)
-                                    self.selected.plant = idx
-                                    if self.sfx: self.sfx.play("PICK")
-                                    self.selected.plant_time = time.time()
-                                    self.selected.grown = False
-                                    self.shop._add_to_inventory(self.shop.inv_seeds, seed_name, -1)
+                            self.selected.plant = idx
+                            self.selected.plant_time = time.time()
+                            self.selected.grown = False
                         elif self.active_tab == "fertiliser":
                             self.selected.fertiliser = idx
-                            if self.sfx: self.sfx.play("PICK")
 
 
     # ---------- helpers ----------
@@ -296,7 +251,7 @@ class FieldScene:
         tab_y = sel.rect.top
 
         tab_rect = pygame.Rect(tab_x, tab_y, tab_w, tab_h)
-        pygame.draw.rect(surf, (255, 255, 255), tab_rect, border_radius=8)
+        pygame.draw.rect(surf, (220, 220, 220), tab_rect, border_radius=8)
 
         soil_r = pygame.Rect(tab_rect.x + 8, tab_rect.y + 8, btn_w, btn_h)
         plant_r = pygame.Rect(tab_rect.x + 8 + btn_w + 8, tab_rect.y + 8, btn_w, btn_h)
@@ -307,7 +262,7 @@ class FieldScene:
         pygame.draw.rect(surf, self.cfg["TAB_BTN_ACTIVE"] if self.active_tab == "fertiliser" else self.cfg["TAB_BTN"], fert_r, border_radius=4)
 
         soil_txt = self.font.render("Soil", True, (255, 255, 255))
-        plant_txt = self.font.render("Crops", True, (255, 255, 255))
+        plant_txt = self.font.render("Plants", True, (255, 255, 255))
         fert_txt = self.font.render("Fertiliser", True, (255, 255, 255))
         surf.blit(soil_txt, soil_txt.get_rect(center=soil_r.center))
         surf.blit(plant_txt, plant_txt.get_rect(center=plant_r.center))
@@ -329,17 +284,6 @@ class FieldScene:
 
         labels_map = {"soil": SOIL_LABELS, "plants": PLANT_LABELS, "fertiliser": FERT_LABELS}
         rects = []
-        # Only show plant options for seeds you own
-        owned_seeds = set()
-        if self.active_tab == "plants" and self.shop:
-            for seed in self.shop.inv_seeds:
-                if seed.get("qty", 0) > 0:
-                    # Map seed name to plant index
-                    if "Carrot" in seed["name"]: owned_seeds.add(0)
-                    if "Potato" in seed["name"]: owned_seeds.add(1)
-                    if "Tomato" in seed["name"]: owned_seeds.add(2)
-                    if "Cucumber" in seed["name"]: owned_seeds.add(3)
-                    if "Lentil" in seed["name"]: owned_seeds.add(4)
         for i, label in enumerate(labels_map[self.active_tab]):
             r = pygame.Rect(
                 tab_rect.x + 8,
@@ -348,10 +292,7 @@ class FieldScene:
                 opt_h,
             )
             rects.append(r)
-            if self.active_tab == "plants" and i not in owned_seeds:
-                fill = (180, 180, 180)  # gray out if not owned
-            else:
-                fill = (100, 200, 100) if self.active_tab != "fertiliser" else (200, 200, 100)
+            fill = (100, 200, 100) if self.active_tab != "fertiliser" else (200, 200, 100)
             pygame.draw.rect(surf, fill, r)
             pygame.draw.rect(surf, (0, 0, 0), r, 2)
             text = self.font.render(label, True, (0, 0, 0))

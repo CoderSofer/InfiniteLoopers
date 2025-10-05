@@ -1,6 +1,6 @@
 import pygame
 
-def show_help(screen, pixel_font):
+def show_help(screen, pixel_font, sfx):
     #load image
     help_image = pygame.image.load("./images/help_page.png").convert_alpha()
     help_image = pygame.transform.scale(help_image, (100,500))
@@ -48,9 +48,7 @@ def show_help(screen, pixel_font):
             ("To Play the game press Play", (100,120)),
             ("To earn coins harvest some veggies!", (100,200)),
             ("Go to Book of Knowledge to learn", (100, 290)),
-            ("Go to Shop to buy/sell veggies", (100,380)),
-            ("etc.", (100,470)),
-            ("etc", (100, 550))
+            ("Go to Shop to buy/sell veggies", (100,380))
 
         ]
 
@@ -67,6 +65,7 @@ def show_help(screen, pixel_font):
                 running=False
             elif event.type==pygame.MOUSEBUTTONDOWN:
                 if arrow_rect.collidepoint(event.pos):
+                    if sfx: sfx.play("CLICK")
                     running= False    
         
 
