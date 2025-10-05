@@ -31,22 +31,31 @@ class BookScene():
         RECTANGLE_HEIGHT = 400
         SCREEN_WIDTH = self.scene_width/2 - RECTANGLE_WIDTH/2
         SCREEN_HEIGHT = self.scene_height/2 - RECTANGLE_HEIGHT/2
+
+        # background so the field doesn't show through
+        self.scene.fill((234, 212, 200))
        # self.rectangle_pos = (SCREEN_WIDTH)
         rectangle = pygame.draw.rect(self.scene, self.BOOK_COLOURS.get("DEFAULT"), pygame.Rect(SCREEN_WIDTH,SCREEN_HEIGHT,RECTANGLE_WIDTH,RECTANGLE_HEIGHT))
         
         # new buttons
-        buttons = createButtons(rectangle)
+        buttons = createButtons(rectangle, self.scene)
 
         buttons.newButton("Plant",(0,0,125))
         buttons.newButton("Fertiliser", (0,0,125))
         buttons.newButton("Soil", (0,0,125))
 
+    # called from main loop when STATE == "BOOK"
+    def draw(self):
+        # re-draw the static guidebook UI each frame
+        self.main_Page_Inner()
+
 class createButtons():
 
     button_spacing = 0
 
-    def __init__(self, rectangle):
+    def __init__(self, rectangle, surface):
         self.book = rectangle
+        self.surface = surface
 
     def colourDictionary(self, string):
         BUTTON_COLOURS = { # Add button colours here!
@@ -74,7 +83,7 @@ class createButtons():
 
         # creating box
         #parameters: screen, colour, Rect(xpos,ypos,width,height)
-        rect = pygame.draw.rect(screen, self.colourDictionary(string) , pygame.Rect(topleftx + self.button_spacing, toplefty - height_of_buttons/2, width_of_buttons, height_of_buttons))
+        rect = pygame.draw.rect(self.surface, self.colourDictionary(string) , pygame.Rect(topleftx + self.button_spacing, toplefty - height_of_buttons/2, width_of_buttons, height_of_buttons))
         
         # creating text
         font = pygame.font.Font(None, text_font_size)
@@ -93,7 +102,7 @@ class createButtons():
         pos = text.get_rect(center=(rect.centerx,rect.centery))
         #parameters: x, y
 
-        screen.blit(text, pos)
+        self.surface.blit(text, pos)
         
         self.button_spacing = self.button_spacing + width_of_buttons + 15
 
@@ -103,18 +112,18 @@ STAGES
 
 """
 
-pygame.init()
+# pygame.init()
 
-pygame.display.set_caption('Testing')
-screen = pygame.display.set_mode((800,600))
-screen.fill((234, 212, 200))
-BookScene(screen)
-pygame.display.flip()
+# pygame.display.set_caption('Testing')
+# screen = pygame.display.set_mode((800,600))
+# screen.fill((234, 212, 200))
+# BookScene(screen)
+# pygame.display.flip()
 
-running = True
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+# running = True
+# while running:
+#     for event in pygame.event.get():
+#         if event.type == pygame.QUIT:
+#             running = False
 
-pygame.quit()
+# pygame.quit()

@@ -114,10 +114,11 @@ class FieldScene:
       - draw(surface)
       - handle_event(event)
     """
-    def __init__(self, screen_size, fonts=None, config=None):
+    def __init__(self, screen_size, fonts=None, config=None, sfx=None): 
         self.w, self.h = screen_size
         self.cfg = {**DEFAULTS, **(config or {})}
         self.font = (fonts or {}).get("tab", pygame.font.SysFont(None, 24))
+        self.sfx = sfx
 
         self.start_x, self.start_y = compute_grid_start(
             self.w, self.h, self.cfg["COLS"], self.cfg["ROWS"], self.cfg["TILE_SIZE"], self.cfg["GAP"]
@@ -140,6 +141,14 @@ class FieldScene:
             self.cfg["TILE_SIZE"], self.cfg["GAP"],
             anchor="top-right", size=(96, 28), offset=(0, 8)
         )
+        # --- Guidebook button placed just left of the Shop button ---
+        self.want_guidebook = False
+        _bw, _bh = self.shop_button_rect.size
+        self.guide_button_rect = pygame.Rect(
+            self.shop_button_rect.x - _bw - 8,  # 8px gap to the left of Shop
+            self.shop_button_rect.y,
+            _bw, _bh
+        )
 
 
     def update(self, now=None):
@@ -161,11 +170,21 @@ class FieldScene:
         draw_shop_button(surface, self.shop_button_rect, self.font, hovered, label="Shop")
 
 
+        # Guidebook button
+        hovered_g = self.guide_button_rect.collidepoint(pygame.mouse.get_pos())
+        draw_shop_button(surface, self.guide_button_rect, self.font, hovered_g, label="Guide")
+
+
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             pos = event.pos
             if self.shop_button_rect.collidepoint(pos):
                 self.shop_open = not self.shop_open
+                if self.sfx: self.sfx.play("CLICK")
+                return
+            if self.guide_button_rect.collidepoint(pos):
+                self.want_guidebook = True
+                if self.sfx: self.sfx.play("CLICK")
                 return
             if not self.tab_active:
                 for t in self.tiles:
@@ -175,6 +194,7 @@ class FieldScene:
                             t.plant = None
                             t.plant_time = None
                             t.grown = False
+                            if self.sfx: self.sfx.play("HARVEST")
                         else:
                             self.selected = t
                             self.tab_active = True
@@ -200,12 +220,15 @@ class FieldScene:
                     if rect.collidepoint(pos):
                         if self.active_tab == "soil":
                             self.selected.soil = idx
+                            if self.sfx: self.sfx.play("PICK")
                         elif self.active_tab == "plants":
                             self.selected.plant = idx
                             self.selected.plant_time = time.time()
                             self.selected.grown = False
+                            if self.sfx: self.sfx.play("PICK")
                         elif self.active_tab == "fertiliser":
                             self.selected.fertiliser = idx
+                            if self.sfx: self.sfx.play("PICK")
 
 
     # ---------- helpers ----------

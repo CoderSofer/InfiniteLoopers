@@ -2,11 +2,18 @@ import time
 import pygame
 from game import FieldScene
 from game.store import ShopPopup 
+from game.guidebook import BookScene
+from game.sounds import SoundBank 
 
 pygame.init()
+pygame.mixer.init() 
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Farm Game")
 clock = pygame.time.Clock()
+
+# Load SFX
+sfx = SoundBank(volume=0.9)
+sfx.load() 
 
 fonts = {
     "tab": pygame.font.SysFont(None, 24),
@@ -14,12 +21,14 @@ fonts = {
     "title": pygame.font.SysFont(None, 22),  
 }
 
-field = FieldScene(screen.get_size(), fonts=fonts)
+# Pass sfx into FieldScene 
+field = FieldScene(screen.get_size(), fonts=fonts, sfx=sfx)
 STATE = "HOME"
 home_ui = {}
 running = True
 
 shop = ShopPopup(fonts={"tab": fonts["tab"], "title": fonts["title"]})
+book = BookScene(screen) 
 
 def draw_home(surf):
     surf.fill((30, 30, 30))
@@ -39,7 +48,7 @@ while running:
     if STATE == "FIELD":
         field.update(now)
         field.draw(screen)
- # If the Shop button is toggled on, draw the popup
+        # If the Shop button is toggled on, draw the popup
         if getattr(field, "shop_open", False):
             grid_geom = {
                 "start_x": field.start_x,
@@ -51,6 +60,8 @@ while running:
             }
             shop.active = True  # ensure it's visible once toggled on
             shop.draw(screen, grid_geom)
+    elif STATE == "BOOK":
+        book.draw()
     else:
         home_ui = draw_home(screen)
 
@@ -75,12 +86,19 @@ while running:
                     if not shop.active:
                         field.shop_open = False
                     continue  # popup consumed the event
-
+                # transition to Guidebook if the field asked for it
+            if getattr(field, "want_guidebook", False):
+                field.want_guidebook = False
+                STATE = "BOOK"
             # Otherwise, normal field input (this includes the Shop button toggle)
             field.handle_event(event)
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 STATE = "HOME"
+        elif STATE == "BOOK":
+            # simple exit for now
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                STATE = "FIELD"
         else:  # HOME
             if event.type == pygame.MOUSEBUTTONDOWN and home_ui.get("enter_btn", pygame.Rect(0,0,0,0)).collidepoint(event.pos):
                 STATE = "FIELD"
