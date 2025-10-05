@@ -1,12 +1,12 @@
 import pygame
 import pygame_menu
 from pygame_menu import themes
-from help_page import show_help
+from .helpPage import show_help
 
 pygame.init()
 
 #Load and scale soil banner at the bottom
-soil_banner = pygame.image.load("soil_banner.png")
+soil_banner = pygame.image.load("./images/soil_banner.png")
 soil_banner = pygame.transform.scale(soil_banner, (400,150))
 
 #Set up the game window and load font
@@ -51,16 +51,15 @@ def main_page():
         #Handle user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running=False
+                return "QUIT"
             if event.type== pygame.MOUSEBUTTONDOWN:
                 mouse_pos=pygame.mouse.get_pos()
                 if help_rect.collidepoint(mouse_pos):
-                    if show_help(screen,pixel_font):
-                        running= False
+                    show_help(screen, pixel_font)
 
                 #If PLay is clicked, print message, havent added clicking functionality to go to field
                 elif play_rect.collidepoint(mouse_pos):
-                    print("Play clicked!")
+                    return "PLAY"
 
         #Draw soil banner across bottom of screen
         soil_rect1 = soil_banner.get_rect()
@@ -71,6 +70,3 @@ def main_page():
         screen.blit(soil_banner,soil_rect1)
         screen.blit(soil_banner, soil_rect2)
         pygame.display.update()
-#Launche main menu
-main_page()
-pygame.quit()  # exit pygame when done       

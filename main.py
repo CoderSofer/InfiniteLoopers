@@ -4,6 +4,7 @@ from game import FieldScene
 from game.store import ShopPopup 
 from game.guidebook import BookScene
 from game.sounds import SoundBank 
+from game.homePage import main_page
 
 pygame.init()
 pygame.mixer.init() 
@@ -23,22 +24,17 @@ fonts = {
 
 # Pass sfx into FieldScene 
 field = FieldScene(screen.get_size(), fonts=fonts, sfx=sfx)
-STATE = "HOME"
-home_ui = {}
-running = True
-
 shop = ShopPopup(fonts={"tab": fonts["tab"], "title": fonts["title"]})
 book = BookScene(screen) 
 
-def draw_home(surf):
-    surf.fill((30, 30, 30))
-    title = fonts["home"].render("Farm Game — Home", True, (255, 255, 255))
-    surf.blit(title, (20, 20))
-    btn = pygame.Rect(300, 260, 200, 60)
-    pygame.draw.rect(surf, (90, 90, 90), btn, border_radius=12)
-    txt = fonts["home"].render("Enter Field", True, (255, 255, 255))
-    surf.blit(txt, txt.get_rect(center=btn.center))
-    return {"enter_btn": btn}
+# Show your homepage first, then start FIELD if Play is clicked
+action = main_page()
+if action == "QUIT":
+    pygame.quit()
+    raise SystemExit
+STATE = "FIELD"
+
+running = True
 
 while running:
     dt = clock.tick(60) / 1000.0
@@ -62,8 +58,6 @@ while running:
             shop.draw(screen, grid_geom)
     elif STATE == "BOOK":
         book.draw()
-    else:
-        home_ui = draw_home(screen)
 
 
     for event in pygame.event.get():
@@ -94,13 +88,16 @@ while running:
             field.handle_event(event)
 
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                STATE = "HOME"
+                # <<< NEW: go to your homepage; if they quit there, exit; if they hit Play, return to FIELD
+                act = main_page()
+                if act == "QUIT":
+                    running = False
+                else:
+                    STATE = "FIELD"
+                continue
+
         elif STATE == "BOOK":
-            # simple exit for now
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                STATE = "FIELD"
-        else:  # HOME
-            if event.type == pygame.MOUSEBUTTONDOWN and home_ui.get("enter_btn", pygame.Rect(0,0,0,0)).collidepoint(event.pos):
                 STATE = "FIELD"
 
     pygame.display.flip()

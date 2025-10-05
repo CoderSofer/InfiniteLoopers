@@ -1,7 +1,8 @@
 import pygame
+
 def show_help(screen, pixel_font):
     #load image
-    help_image = pygame.image.load("help_page.png").convert_alpha()
+    help_image = pygame.image.load("./images/help_page.png").convert_alpha()
     help_image = pygame.transform.scale(help_image, (100,500))
 
     #position to the left side
@@ -9,21 +10,21 @@ def show_help(screen, pixel_font):
     image_rect.bottomleft=(0,screen.get_height()-10)
     
     #Load and position truck
-    truck_image = pygame.image.load("truck.png").convert_alpha()
+    truck_image = pygame.image.load("./images/truck.png").convert_alpha()
     truck_image = pygame.transform.scale(truck_image, (200,90))
 
     truck_rect = truck_image.get_rect()
     truck_rect.bottomright = (screen.get_width() - 10, screen.get_height()-10)
 
     #Load and scale back arrow icon
-    arrow_image=pygame.image.load("arrow.png").convert_alpha()
+    arrow_image=pygame.image.load("./images/arrow.png").convert_alpha()
     arrow_image = pygame.transform.scale(arrow_image, (75, 75))
 
     arrow_rect=arrow_image.get_rect()
     arrow_rect.midtop=(35,35)
 
     #load font for help instrcutions
-    instruction_font = pygame.font.Font("pixel_Font.ttf", 35)
+    instruction_font = pygame.font.Font("./pixel_Font.ttf", 35)
 
     
     running=True
