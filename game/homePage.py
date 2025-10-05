@@ -2,10 +2,6 @@ import pygame
 from .helpPage import show_help
 
 from game.sounds import SoundBank 
-import pygame_menu
-from pygame_menu import themes
-from .helpPage import show_help
-
 pygame.init()
 
 #Load and scale soil banner at the bottom
