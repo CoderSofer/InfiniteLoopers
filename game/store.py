@@ -4,16 +4,9 @@ import pygame
 from typing import Optional, Dict, List
 
 # ---- Colors / layout ----
-<<<<<<< Updated upstream
-COL_PANEL_BG = (220, 220, 220)
-COL_PANEL_BORDER = (0, 0, 0)
-COL_BTN = (190, 190, 190)
-COL_BTN_ACTIVE = (160, 160, 160)
-=======
 COL_PANEL_BG = (255, 255, 255)
 COL_BTN = (78, 177, 78)
 COL_BTN_ACTIVE = (0, 118, 0)
->>>>>>> Stashed changes
 COL_GOOD = (100, 200, 100)
 COL_BAD = (200, 80, 80)
 COL_TEXT = (173, 109, 68)
@@ -79,17 +72,12 @@ class ShopPopup:
         ]
 
         # -------- Inventory --------
-<<<<<<< Updated upstream
-        self.inv_seeds: List[Dict] = []
-        self.inv_dirt:  List[Dict] = []
-=======
         self.inv_seeds: List[Dict] = [
             {"name": "Carrot Seeds",   "qty": 1, "price": 8},
             {"name": "Potato Seeds",   "qty": 0, "price": 12},
             {"name": "Tomato Seeds",   "qty": 0, "price": 6},
             {"name": "Cucumber Seeds", "qty": 0, "price": 10},
             {"name": "Lentil Seeds",  "qty": 0, "price": 20},]
->>>>>>> Stashed changes
         self.inv_ferts: List[Dict] = []
         self.inv_tools: List[Dict] = []
         self.inv_crops: List[Dict] = [
@@ -187,12 +175,7 @@ class ShopPopup:
 
     # ---------------- drawing primitives ----------------
     def _draw_tab_button(self, surface, rect, label, active):
-<<<<<<< Updated upstream
-        pygame.draw.rect(surface, COL_BTN_ACTIVE if active else COL_BTN, rect)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, rect, 2)
-=======
         pygame.draw.rect(surface, COL_BTN_ACTIVE if active else COL_BTN, rect, border_radius=4)
->>>>>>> Stashed changes
         surface.blit(self.font_tab.render(label, True, COL_TEXT), (rect.x + 6, rect.y + 4))
 
     def _draw_subtabs(self, surface, shop_rect, current, y, include_crops=False):

@@ -2,6 +2,7 @@
 import time
 import pygame
 from typing import Tuple, Optional
+import os
 
 # ---- Config / data ----
 SOIL_LABELS = ["Loose & well-draining", "Rich & well-draining", "Deep & Loose", "Loamy", "Well-draining"]
@@ -35,8 +36,6 @@ SHOP_BTN_HOVER = (160, 160, 160)
 SHOP_BTN_TEXT  = (0, 0, 0)
 SHOP_BTN_BORDER = (0, 0, 0)
 
-<<<<<<< Updated upstream
-=======
 # ---- Load soil images ----
 SOIL_IMAGES = []
 for i in range(5):
@@ -52,7 +51,6 @@ for i in range(5):
     img = pygame.transform.smoothscale(img, (100,100))
     PLANT_IMAGES.append(img)
 
->>>>>>> Stashed changes
 # ---- Shop button helpers ----
 def make_shop_button_rect(start_x, start_y, cols, rows, tile_size, gap,
                           *, anchor="top-right", size=(96, 28), offset=(0, 8)) -> pygame.Rect:

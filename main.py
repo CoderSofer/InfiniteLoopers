@@ -3,6 +3,7 @@ import pygame
 from game import FieldScene
 from game.store import ShopPopup 
 
+
 pygame.init()
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Farm Game")
@@ -14,11 +15,6 @@ fonts = {
     "title": pygame.font.SysFont(None, 22),  
 }
 
-<<<<<<< Updated upstream
-field = FieldScene(screen.get_size(), fonts=fonts)
-STATE = "HOME"
-home_ui = {}
-=======
 shop = ShopPopup(fonts={"tab": fonts["tab"], "title": fonts["title"]})
 field = FieldScene(screen.get_size(), fonts=fonts, shop=shop, sfx=sfx)
 book = BookScene(screen) 
@@ -30,7 +26,6 @@ if action == "QUIT":
     raise SystemExit
 STATE = "FIELD"
 
->>>>>>> Stashed changes
 running = True
 
 shop = ShopPopup(fonts={"tab": fonts["tab"], "title": fonts["title"]})
