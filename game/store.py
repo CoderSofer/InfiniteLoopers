@@ -4,13 +4,13 @@ import pygame
 from typing import Optional, Dict, List
 
 # ---- Colors / layout ----
-COL_PANEL_BG = (255, 255, 255)
-#COL_PANEL_BORDER = (255, 255, 255)
+COL_PANEL_BG = (220, 220, 220)
+COL_PANEL_BORDER = (0, 0, 0)
 COL_BTN = (190, 190, 190)
 COL_BTN_ACTIVE = (160, 160, 160)
 COL_GOOD = (100, 200, 100)
 COL_BAD = (200, 80, 80)
-COL_TEXT = (0, 0, 0)
+COL_TEXT = (173, 109, 68)
 COL_DISABLED = (180, 180, 180)
 COL_SCROLL_TRACK = (210, 210, 210)
 COL_SCROLL_THUMB = (150, 150, 150)
@@ -54,9 +54,9 @@ class ShopPopup:
             {"name": "Lentil Seeds",   "price": 15, "stock": 5},
         ]
         self.store_ferts: List[Dict] = [
-            {"name": "Fertiliser A", "price": 25, "stock": 6},
-            {"name": "Fertiliser B", "price": 35, "stock": 5},
-            {"name": "Fertiliser C", "price": 50, "stock": 3},
+            {"name": "Nitrogen", "price": 25, "stock": 6},
+            {"name": "Phosphorus", "price": 35, "stock": 5},
+            {"name": "Potassium", "price": 50, "stock": 3},
         ]
         self.store_tools: List[Dict] = [
             {"name": "Hoe",          "price": 40, "stock": 3, "color": (255,170,80)},

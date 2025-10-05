@@ -218,6 +218,7 @@ class FieldScene:
             if not self.tab_active:
                 for t in self.tiles:
                     if t.rect.collidepoint(pos):
+                        if self.sfx: self.sfx.play("CLICK")
                         # harvest if grown
                         if t.plant is not None and t.grown:
                             # Add harvested crop to inventory
@@ -235,14 +236,18 @@ class FieldScene:
             else:
                 # switch tabs
                 if self.ui.get("soil_btn") and self.ui["soil_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "soil"
                 if self.ui.get("plant_btn") and self.ui["plant_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "plants"
                 if self.ui.get("fert_btn") and self.ui["fert_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "fertiliser"
 
                 # close
                 if self.ui.get("close_btn") and self.ui["close_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.tab_active = False
                     self.selected = None
                     return
