@@ -1,124 +1,199 @@
 import pygame
 
-class BookScene():
+array_of_menus = {}
+array_of_items = {}
 
-    BOOK_COLOURS = { 
-        "PLANT": (255,0,0),
-        "FERTILISER": (0,255,0),
-        "SOIL": (0,0,255),
-        "DEFAULT": (255,0,0)
-    }
+BOOKMENU_COLOURS = { # Add button colours here!
+    "Fertiliser": (207, 217, 180),
+    "Plant":(42, 245, 140),
+    "Soil": (68, 241, 218),
+    "DEFAULT": (163, 204, 198)
+}
+
+def colourDictionary(string):
+    for key in BOOKMENU_COLOURS:
+        if string.upper() == key.upper():
+            return BOOKMENU_COLOURS[key]
+
+    return "not found"
+
+def addToArrayOfItems(name, item, category):
+    array_of_items.setdefault(category, {})[name] = item
+
+def addToArrayOfMenus(item, category):
+    array_of_menus[category] = item
+
+class BookScene():
 
     def __init__(self, scene):
         self.scene = scene
-        self.scene_width = scene.get_width()
-        self.scene_height = scene.get_height()
-
         self.setup_book()
 
     def setup_book(self):
-        self.draw_layout(self.BOOK_COLOURS.get("DEFAULT")) # needs colour
-    
-    #Add new item
-    #Update stroke of main when selected a button and ui?
-
-    def draw_layout(self, colour):
-        self.main_Page_Inner()
+        self.create_foundation()
+        self.create_buttons()
+        self.create_Items()
 
     # Main Page Layout
-    def main_Page_Inner(self):
-        RECTANGLE_WIDTH = 600
-        RECTANGLE_HEIGHT = 400
-        SCREEN_WIDTH = self.scene_width/2 - RECTANGLE_WIDTH/2
-        SCREEN_HEIGHT = self.scene_height/2 - RECTANGLE_HEIGHT/2
+    def create_foundation(self):
+        BOOK_WIDTH = 600
+        BOOK_HEIGHT = 400
+        SCREEN_WIDTH = self.scene.get_width()/2 - BOOK_WIDTH/2
+        SCREEN_HEIGHT = self.scene.get_height()/2 - BOOK_HEIGHT/2
 
-        # background so the field doesn't show through
-        self.scene.fill((234, 212, 200))
-       # self.rectangle_pos = (SCREEN_WIDTH)
-        rectangle = pygame.draw.rect(self.scene, self.BOOK_COLOURS.get("DEFAULT"), pygame.Rect(SCREEN_WIDTH,SCREEN_HEIGHT,RECTANGLE_WIDTH,RECTANGLE_HEIGHT))
+        self.rectangle = pygame.draw.rect(self.scene, BOOKMENU_COLOURS.get("DEFAULT"), pygame.Rect(SCREEN_WIDTH,SCREEN_HEIGHT,BOOK_WIDTH,BOOK_HEIGHT))
+    def create_Items(self):
+        self.item = Items(self.rectangle)
+
+        #names have to be unique otherwise it will not display items correctly
+        self.item.addItemToGuideBook("Carrot", 4, "./game/images/Vegetables/carrot.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Potatoes", 4, "./game/images/Vegetables/potato.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Tomatoes", 4, "./game/images/Vegetables/tomato.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Cucumbers", 4, "./game/images/Vegetables/cucumber.png", "insert description", "Plant")
+        self.item.addItemToGuideBook("Lentils", 4, "./game/images/Vegetables/lentil.png", "insert description", "Plant")
         
-        # new buttons
-        buttons = createButtons(rectangle, self.scene)
+        self.item.addItemToGuideBook("Deep, Loose", 8, "./game/images/Soils/Deep & Loose.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loose, Well-Drained", 8, "./game/images/Soils/Loose & well-draining.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Rich, Well-Drained", 8, "./game/images/Soils/Rich & well-draining.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loamy", 8, "./game/images/Soils/Loamy.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Well-draining", 8, "./game/images/Soils/Well-draining.png", "insert description", "Soil")
 
-        buttons.newButton("Plant",(0,0,125))
-        buttons.newButton("Fertiliser", (0,0,125))
-        buttons.newButton("Soil", (0,0,125))
+        self.item.addItemToGuideBook("Nitrogen", 8, "./game/images/Vegetables/fertiliser.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Phosphorus", 8, "./game/images/Vegetables/fertiliser.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Potassium", 8, "./game/images/Vegetables/fertiliser.png", "insert description", "Fertiliser")
 
-    # called from main loop when STATE == "BOOK"
-    def draw(self):
-        # re-draw the static guidebook UI each frame
-        self.main_Page_Inner()
+
+
+    def create_buttons(self):
+        buttons = createButtons(self.rectangle)
+
+        button1 = buttons.newButton("Plant")
+        button2 = buttons.newButton("Fertiliser")
+        button3 = buttons.newButton("Soil")
+
+        # be able to click these
+
+    def display_items(self, category):
+        self.item.displayItems(category)
+    
+class Items():
+
+    SPACING = 0
+    VERTICAL_SPACING = 0
+
+    def __init__(self, foundation):
+        self.item_list = {}
+        self.foundation = foundation
+
+    def addItemToGuideBook(self, name, value, image, description, category):
+        self.item_list[name] = {
+            "value": value,
+            "image": image,
+            "colour": (217,217,217),
+            "descriptions": description,
+            "category": category
+        }
+
+        # create rectangle
+        # check if it exceeds boundaries to the right of rectangle
+    
+    def produceText(self, text_font_size, rect, string):
+        rectx, recty = rect.bottomleft
+
+        font = pygame.font.Font(None, text_font_size)
+        text_width, text_height = font.size(string)
+
+        while (text_width >= rect.width):
+            text_font_size = text_font_size - 1
+            font = pygame.font.Font(None, text_font_size)
+            text_width, text_height = font.size(string)
+                
+        text = font.render((string), True, (0,0,0))
+        center_position = text.get_rect(topleft=(rectx + rect.width/2 - text_width/2 ,recty - text_height))
+        screen.blit(text, center_position)
+
+        return text_height
+    
+    def displayItems(self, category):
+
+        screen.fill((234, 212, 200))
+        book.create_foundation()
+        book.create_buttons()
+        
+        WIDTH = 125
+        HEIGHT = 125
+        posx = self.foundation.x + 20
+        posy = self.foundation.y + 50
+        text_font_size = 25
+
+        for key in self.item_list:
+
+            if not (self.item_list[key]["category"] == category):
+                continue
+            
+            if (posx + self.SPACING >= self.foundation.x + self.foundation.width - 20):
+                self.SPACING = 0
+                self.VERTICAL_SPACING += HEIGHT + 20
+            
+            self.item_list[key]["rect"] = pygame.draw.rect(screen, self.item_list[key]["colour"], pygame.Rect(posx + self.SPACING, posy + self.VERTICAL_SPACING, WIDTH, HEIGHT))
+            addToArrayOfItems(key, self.item_list[key], self.item_list[key]["category"])
+            self.SPACING = self.SPACING + WIDTH + 15
+            text_height = self.produceText(text_font_size, self.item_list[key]["rect"], str(key))
+
+            #Images
+            img = pygame.image.load(self.item_list[key]["image"])
+            image_small = pygame.transform.scale(img, (WIDTH, HEIGHT - text_height))
+            screen.blit(image_small, self.item_list[key]["rect"].topleft)
+            pygame.display.flip()
+
+
+            pygame.display.update()
+
+        self.SPACING = 0
+        self.VERTICAL_SPACING = 0
 
 class createButtons():
 
     button_spacing = 0
+    WIDTH_OF_BUTTONS = 100
+    HEIGHT_OF_BUTTONS = 50
+    
+    def __init__(self, rectangle):
+        self.TOPLEFTX = rectangle.x + 20
+        self.TOPLEFTY = rectangle.y
 
-    def __init__(self, rectangle, surface):
-        self.book = rectangle
-        self.surface = surface
-
-    def colourDictionary(self, string):
-        BUTTON_COLOURS = { # Add button colours here!
-            "Fertiliser": (207, 217, 180),
-            "Plant":(42, 245, 140),
-            "Soil": (68, 241, 218)
-        }
-
-        for key in BUTTON_COLOURS:
-            if string.upper() == key.upper():
-                return BUTTON_COLOURS[key]
-
-        return "not found"
-
-    def newButton(self, string, colour): # add colours and text
-
-        # variables
-        topleftx = self.book.x + 20
-        toplefty = self.book.y
-
-        width_of_buttons = 100
-        height_of_buttons = 50
-
-        text_font_size = 36
-
-        # creating box
-        #parameters: screen, colour, Rect(xpos,ypos,width,height)
-        rect = pygame.draw.rect(self.surface, self.colourDictionary(string) , pygame.Rect(topleftx + self.button_spacing, toplefty - height_of_buttons/2, width_of_buttons, height_of_buttons))
-        
-        # creating text
+    def produceText(self, text_font_size, rect, string):
         font = pygame.font.Font(None, text_font_size)
         text_width, text_height = font.size(string)
-        # adjust size of text if the length exceeds boundaries
-
+        
         while (text_width >= rect.width):
-            text_font_size = text_font_size - 5
+            text_font_size = text_font_size - 1
             font = pygame.font.Font(None, text_font_size)
-            text_width2, text_height = font.size(string)
-
-            if (text_width2 < rect.width):
-                break
+            text_width, text_height = font.size(string)
         
         text = font.render(string, True, (0,0,0))
-        pos = text.get_rect(center=(rect.centerx,rect.centery))
-        #parameters: x, y
+        center_position = text.get_rect(center=(rect.centerx,rect.centery))
+        screen.blit(text, center_position)
+        self.button_spacing = self.button_spacing + self.WIDTH_OF_BUTTONS + 15
 
-        self.surface.blit(text, pos)
+
+    def newButton(self, string):
+        text_font_size = 36
+
+        rect = pygame.draw.rect(screen, colourDictionary(string) , pygame.Rect(self.TOPLEFTX + self.button_spacing, self.TOPLEFTY - self.HEIGHT_OF_BUTTONS/2, self.WIDTH_OF_BUTTONS, self.HEIGHT_OF_BUTTONS))
         
-        self.button_spacing = self.button_spacing + width_of_buttons + 15
+        self.produceText(text_font_size, rect, string)
 
-"""
-STAGES
-- Buttons
-
-"""
+        addToArrayOfMenus(rect, string)
+        
 
 # pygame.init()
 
-# pygame.display.set_caption('Testing')
-# screen = pygame.display.set_mode((800,600))
-# screen.fill((234, 212, 200))
-# BookScene(screen)
-# pygame.display.flip()
+pygame.display.set_caption('Testing')
+screen = pygame.display.set_mode((800,600))
+screen.fill((234, 212, 200))
+book = BookScene(screen)
+pygame.display.flip()
 
 # running = True
 # while running:
@@ -126,4 +201,17 @@ STAGES
 #         if event.type == pygame.QUIT:
 #             running = False
 
-# pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+
+            mouse_pos = pygame.mouse.get_pos()
+
+            for category, items in array_of_items.items():
+                for name, item in items.items():
+                    if "rect" in item and item["rect"].collidepoint(mouse_pos):
+                        print(" clicked!")
+
+            for category, rect in array_of_menus.items():
+                if rect.collidepoint(mouse_pos):
+                    book.display_items(category)
+
+pygame.quit()
