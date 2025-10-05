@@ -4,19 +4,13 @@ import pygame
 from typing import Optional, Dict, List
 
 # ---- Colors / layout ----
-<<<<<<< Updated upstream
-COL_PANEL_BG = (220, 220, 220)
-COL_PANEL_BORDER = (0, 0, 0)
+COL_PANEL_BG = (255, 255, 255)
+#COL_PANEL_BORDER = (255, 255, 255)
 COL_BTN = (190, 190, 190)
 COL_BTN_ACTIVE = (160, 160, 160)
-=======
-COL_PANEL_BG = (255, 255, 255)
-COL_BTN = (78, 177, 78)
-COL_BTN_ACTIVE = (0, 118, 0)
->>>>>>> Stashed changes
 COL_GOOD = (100, 200, 100)
 COL_BAD = (200, 80, 80)
-COL_TEXT = (173, 109, 68)
+COL_TEXT = (0, 0, 0)
 COL_DISABLED = (180, 180, 180)
 COL_SCROLL_TRACK = (210, 210, 210)
 COL_SCROLL_THUMB = (150, 150, 150)
@@ -46,7 +40,7 @@ class ShopPopup:
     - Store rows: {"name","price","stock", ...}
     - Inventory rows: {"name","qty", ...}
     """
-    def __init__(self, fonts: Dict[str, pygame.font.Font] | None = None, *, money: int = 200):
+    def __init__(self, fonts: Dict[str, pygame.font.Font] | None = None, *, money: int = 0):
         fonts = fonts or {}
         self.font_tab   = fonts.get('tab')   or pygame.font.SysFont(None, 18)
         self.font_title = fonts.get('title') or pygame.font.SysFont(None, 22)
@@ -58,13 +52,6 @@ class ShopPopup:
             {"name": "Tomato Seeds",   "price": 9,  "stock": 25},
             {"name": "Cucumber Seeds", "price": 12, "stock": 15},
             {"name": "Lentil Seeds",   "price": 15, "stock": 5},
-        ]
-        self.store_dirt: List[Dict] = [
-            {"name": "Loose & well-draining",           "price": 15, "stock": 12},
-            {"name": "Rich & well-draining",            "price": 10, "stock": 20},
-            {"name": "Deep & Loose",                    "price": 18, "stock": 8},
-            {"name": "Loamy",                           "price": 22, "stock": 6},
-            {"name": "Well-draining",                   "price": 25, "stock": 4},
         ]
         self.store_ferts: List[Dict] = [
             {"name": "Nitrogen", "price": 25, "stock": 6},
@@ -79,25 +66,24 @@ class ShopPopup:
         ]
 
         # -------- Inventory --------
-<<<<<<< Updated upstream
-        self.inv_seeds: List[Dict] = []
-        self.inv_dirt:  List[Dict] = []
-=======
         self.inv_seeds: List[Dict] = [
             {"name": "Carrot Seeds",   "qty": 1, "price": 8},
             {"name": "Potato Seeds",   "qty": 0, "price": 12},
             {"name": "Tomato Seeds",   "qty": 0, "price": 6},
             {"name": "Cucumber Seeds", "qty": 0, "price": 10},
+
             {"name": "Lentil Seeds",  "qty": 0, "price": 20},]
->>>>>>> Stashed changes
+
+            {"name": "Lentils Seeds",  "qty": 0, "price": 20},]
+
         self.inv_ferts: List[Dict] = []
         self.inv_tools: List[Dict] = []
         self.inv_crops: List[Dict] = [
-            {"name": "Carrot",   "qty": 3, "price": 8},
-            {"name": "Potato",   "qty": 2, "price": 12},
+            {"name": "Carrot",   "qty": 0, "price": 8},
+            {"name": "Potato",   "qty": 0, "price": 12},
             {"name": "Tomato",   "qty": 0, "price": 6},
             {"name": "Cucumber", "qty": 0, "price": 10},
-            {"name": "Lentils",  "qty": 5, "price": 20},
+            {"name": "Lentils",  "qty": 0, "price": 20},
         ]
 
         self.money = money
@@ -110,9 +96,9 @@ class ShopPopup:
         self.inv_subtab = "seeds"
 
         self.scroll = {
-            "buy:seeds": 0, "buy:dirt": 0, "buy:ferts": 0, "buy:tools": 0,
+            "buy:seeds": 0, "buy:ferts": 0, "buy:tools": 0,
             "sell": 0,
-            "inv:seeds": 0, "inv:dirt": 0, "inv:ferts": 0, "inv:tools": 0, "inv:crops": 0,
+            "inv:seeds": 0, "inv:ferts": 0, "inv:tools": 0, "inv:crops": 0,
         }
         self.scroll_dragging = False
         self.drag_key = None
@@ -121,9 +107,9 @@ class ShopPopup:
 
     # ---------------- data helpers ----------------
     def _store_for(self, subtab: str) -> List[Dict]:
-        return {"seeds": self.store_seeds, "dirt": self.store_dirt, "ferts": self.store_ferts, "tools": self.store_tools}[subtab]
+        return {"seeds": self.store_seeds, "ferts": self.store_ferts, "tools": self.store_tools}[subtab]
     def _inv_for(self, subtab: str) -> List[Dict]:
-        return {"seeds": self.inv_seeds, "dirt": self.inv_dirt, "ferts": self.inv_ferts, "tools": self.inv_tools, "crops": self.inv_crops}[subtab]
+        return {"seeds": self.inv_seeds, "ferts": self.inv_ferts, "tools": self.inv_tools, "crops": self.inv_crops}[subtab]
     def _owned_qty(self, inv_list: List[Dict], name: str) -> int:
         i = _find_by_name(inv_list, name); return 0 if i < 0 else int(inv_list[i].get("qty", 0))
     def _add_to_inventory(self, inv_list: List[Dict], name: str, delta: int, **extra):
@@ -187,16 +173,13 @@ class ShopPopup:
 
     # ---------------- drawing primitives ----------------
     def _draw_tab_button(self, surface, rect, label, active):
-<<<<<<< Updated upstream
         pygame.draw.rect(surface, COL_BTN_ACTIVE if active else COL_BTN, rect)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, rect, 2)
-=======
-        pygame.draw.rect(surface, COL_BTN_ACTIVE if active else COL_BTN, rect, border_radius=4)
->>>>>>> Stashed changes
+
+        #pygame.draw.rect(surface, COL_PANEL_BORDER, rect, 2)
         surface.blit(self.font_tab.render(label, True, COL_TEXT), (rect.x + 6, rect.y + 4))
 
     def _draw_subtabs(self, surface, shop_rect, current, y, include_crops=False):
-        labels = [("seeds", "Seeds"), ("dirt", "Dirt"), ("ferts", "Fertilisers"), ("tools", "Tools")]
+        labels = [("seeds", "Seeds"), ("ferts", "Fertilisers"), ("tools", "Tools")]
         if include_crops: labels.append(("crops", "Crops"))
         x = shop_rect.x + 8; w = 84; out = {}
         for key, label in labels:
@@ -216,8 +199,8 @@ class ShopPopup:
         thumb_y = track.y + int((track.h - thumb_h) * pos_ratio)
         thumb = pygame.Rect(track.x, thumb_y, track.w, thumb_h)
         pygame.draw.rect(surface, COL_SCROLL_THUMB, thumb)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, track, 1)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, thumb, 1)
+        # pygame.draw.rect(surface, COL_PANEL_BORDER, track, 1)
+        # pygame.draw.rect(surface, COL_PANEL_BORDER, thumb, 1)
         return track, thumb, max_scroll
 
     # ---------------- PUBLIC: draw + events ----------------
@@ -227,7 +210,7 @@ class ShopPopup:
         shop_rect = self._shop_rect(grid_geom, sw, sh)
 
         pygame.draw.rect(surface, COL_PANEL_BG, shop_rect)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, shop_rect, 2)
+        #pygame.draw.rect(surface, COL_PANEL_BORDER, shop_rect, 2)
 
         # Header
         surface.blit(self.font_title.render("Farm Shop", True, COL_TEXT), (shop_rect.x + 8, shop_rect.y + 8))
@@ -262,7 +245,7 @@ class ShopPopup:
             current_key = "sell"
 
         pygame.draw.rect(surface, (235,235,235), content_clip)
-        pygame.draw.rect(surface, COL_PANEL_BORDER, content_clip, 1)
+        #pygame.draw.rect(surface, COL_PANEL_BORDER, content_clip, 1)
         content_surf = surface.subsurface(content_clip)
         if content_clip.w <= 0 or content_clip.h <= 0: return
 
@@ -278,7 +261,7 @@ class ShopPopup:
                 row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                 if row.bottom >= 0 and row.top <= content_clip.h:
                     pygame.draw.rect(content_surf, (240,240,240), row)
-                    pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                    #pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
 
                     # Right-side layout: [ ... name ... | price | stock | BUY ]
                     # Right-side layout: [ ... name ... | price | stock | BUY ]
@@ -318,7 +301,7 @@ class ShopPopup:
                     # buy button (unchanged)
                     can_buy = (self.money >= it["price"]) and (it["stock"] > 0)
                     pygame.draw.rect(content_surf, COL_GOOD if can_buy else COL_DISABLED, buy_btn)
-                    pygame.draw.rect(content_surf, COL_PANEL_BORDER, buy_btn, 1)
+                    #pygame.draw.rect(content_surf, COL_PANEL_BORDER, buy_btn, 1)
                     content_surf.blit(self.font_tab.render("Buy", True, COL_TEXT), (buy_btn.x + 12, buy_btn.y + 2))
 
                 y_cursor += OPTION_H + OPTION_SPACING
@@ -329,7 +312,7 @@ class ShopPopup:
                 row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                 if row.bottom >= 0 and row.top <= content_clip.h:
                     pygame.draw.rect(content_surf, (240,240,240), row)
-                    pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                    #pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
 
                     BTN_W, BTN_H, GAP, PAD = 70, row.h - 4, 6, 6
                     block_w = BTN_W + GAP + BTN_W + PAD
@@ -345,7 +328,7 @@ class ShopPopup:
                     sellall = pygame.Rect(sell1.right + GAP, row.y + 2, BTN_W, BTN_H)
                     for r, label in ((sell1,"Sell 1"), (sellall,"Sell All")):
                         pygame.draw.rect(content_surf, COL_BTN if can_sell else COL_DISABLED, r)
-                        pygame.draw.rect(content_surf, COL_PANEL_BORDER, r, 1)
+                        #pygame.draw.rect(content_surf, COL_PANEL_BORDER, r, 1)
                         content_surf.blit(self.font_tab.render(label, True, COL_TEXT), (r.x + 8, r.y + 2))
                 y_cursor += OPTION_H + OPTION_SPACING
 
@@ -354,11 +337,11 @@ class ShopPopup:
             sect = current_key.split(":")[1]
             inv_list = self._visible(self._inv_for(sect))
 
-            if sect in ("seeds", "dirt", "ferts"):
+            if sect in ("seeds", "ferts"):
                 for it in inv_list:
                     row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                     if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                        #pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
                         content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
                         content_surf.blit(self.font_tab.render(f"x{it['qty']}", True, COL_TEXT), (row.x + 200, row.y + 2))
                     y_cursor += OPTION_H + OPTION_SPACING
@@ -367,7 +350,7 @@ class ShopPopup:
                 for it in inv_list:
                     row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                     if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                        #pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
                         content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (row.x + 6, row.y + 2))
                         qty_lbl = self.font_tab.render(f"x{it['qty']}", True, COL_TEXT)
                         content_surf.blit(qty_lbl, (row.right - qty_lbl.get_width() - 6, row.y + 2))
@@ -377,14 +360,14 @@ class ShopPopup:
                 for i_abs, it in enumerate(inv_list):
                     row = pygame.Rect(0, y_cursor, content_clip.w, OPTION_H)
                     if row.bottom >= 0 and row.top <= content_clip.h:
-                        pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
+                        #pygame.draw.rect(content_surf, (240,240,240), row); pygame.draw.rect(content_surf, COL_PANEL_BORDER, row, 1)
                         icon = pygame.Rect(row.x + 6, row.y + 3, 16, 16)
                         pygame.draw.rect(content_surf, it.get("color", (200,200,200)), icon)
                         content_surf.blit(self.font_tab.render(it["name"], True, COL_TEXT), (icon.right + 6, row.y + 2))
                         is_eq = (self.equipped_tool == i_abs)
                         btn = pygame.Rect(row.right - 90, row.y + 2, 86, row.h - 4)
                         pygame.draw.rect(content_surf, COL_BTN_ACTIVE if is_eq else COL_BTN, btn)
-                        pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
+                        #pygame.draw.rect(content_surf, COL_PANEL_BORDER, btn, 1)
                         content_surf.blit(self.font_tab.render("Equipped" if is_eq else "Equip", True, COL_TEXT), (btn.x + 6, btn.y + 2))
                     y_cursor += OPTION_H + OPTION_SPACING
 
@@ -424,7 +407,7 @@ class ShopPopup:
             # Subtabs
             if include_sub:
                 sub_y = shop_rect.y + 34 + tab_h + 6
-                labels = [("seeds","Seeds"), ("dirt","Dirt"), ("ferts","Fertilisers"), ("tools","Tools")]
+                labels = [("seeds","Seeds"), ("ferts","Fertilisers"), ("tools","Tools")]
                 if self.active_tab == "inventory": labels.append(("crops","Crops"))
                 x = shop_rect.x + 8; w = 84
                 for key, _label in labels:
