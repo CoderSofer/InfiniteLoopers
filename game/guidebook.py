@@ -52,16 +52,16 @@ class BookScene():
         self.item.addItemToGuideBook("Cucumbers", 4, "image.png", "insert description", "Plant")
         self.item.addItemToGuideBook("Lentils", 4, "image.png", "insert description", "Plant")
         
-        self.item.addItemToGuideBook("Deep Loose Soil", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Loose, Well-Drained Soil", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Rich, Well-Drained Soil", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Loamy Soil", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Well-Drained Alkaline Soil", 8, "image.png", "insert description", "Soil")
-        self.item.addItemToGuideBook("Slightly Acidic Soil", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Deep Loose", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loose, Well-Drained", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Rich, Well-Drained", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Loamy", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Well-Drained Alkaline", 8, "image.png", "insert description", "Soil")
+        self.item.addItemToGuideBook("Slightly Acidic", 8, "image.png", "insert description", "Soil")
 
-        self.item.addItemToGuideBook("Nitrogen Fertiliser", 8, "image.png", "insert description", "Fertiliser")
-        self.item.addItemToGuideBook("Phosphorus Fertiliser", 8, "image.png", "insert description", "Fertiliser")
-        self.item.addItemToGuideBook("Potassium Fertiliser", 8, "image.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Nitrogen", 8, "image.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Phosphorus", 8, "image.png", "insert description", "Fertiliser")
+        self.item.addItemToGuideBook("Potassium", 8, "image.png", "insert description", "Fertiliser")
 
 
 
@@ -123,7 +123,7 @@ class Items():
         HEIGHT = 125
         posx = self.foundation.x + 20
         posy = self.foundation.y + 50
-        text_font_size = 36
+        text_font_size = 25
 
         for key in self.item_list:
 
