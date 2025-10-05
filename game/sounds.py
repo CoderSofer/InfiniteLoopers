@@ -130,7 +130,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
 
             mousex, mousey = pygame.mouse.get_pos()
 
@@ -144,14 +144,18 @@ while running:
                 if not fonts:
                     continue
 
-            if "Exit" in fonts and fonts["Exit"]["position"].collidepoint(mousex, mousey):
-                ExitFunctionality(mousex, mousey); continue
-            elif "Plant" in fonts and fonts["Plant"]["position"].collidepoint(mousex, mousey):
-                PlantFunctionality(mousex, mousey); continue
-            elif "Sell" in fonts and fonts["Sell"]["position"].collidepoint(mousex, mousey):
-                SellFunctionality(mousex, mousey); continue
-            elif "Harvest" in fonts and fonts["Harvest"]["position"].collidepoint(mousex, mousey):
-                HarvestFunctionality(mousex, mousey); continue
+                if "Exit" in fonts and fonts["Exit"]["position"].collidepoint(mousex, mousey):
+                    ExitFunctionality(mousex, mousey)
+                    continue
+                elif "Plant" in fonts and fonts["Plant"]["position"].collidepoint(mousex, mousey):
+                    PlantFunctionality(mousex, mousey)
+                    continue
+                elif "Sell" in fonts and fonts["Sell"]["position"].collidepoint(mousex, mousey):
+                    SellFunctionality(mousex, mousey)
+                    continue
+                elif "Harvest" in fonts and fonts["Harvest"]["position"].collidepoint(mousex, mousey):
+                    HarvestFunctionality(mousex, mousey)
+                    continue
 
 
 pygame.quit()
