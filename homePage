@@ -1,0 +1,76 @@
+import pygame
+import pygame_menu
+from pygame_menu import themes
+from help_page import show_help
+
+pygame.init()
+
+#Load and scale soil banner at the bottom
+soil_banner = pygame.image.load("soil_banner.png")
+soil_banner = pygame.transform.scale(soil_banner, (400,150))
+
+#Set up the game window and load font
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Farm Game")
+pixel_font=pygame.font.Font("pixel_Font.ttf",100)
+
+
+
+#Define butter yellow color for background
+BUTTER_YELLOW= '#f5e49c'
+
+
+
+
+#Main game loop
+def main_page():
+    running = True
+    while running:
+
+        #Fill screen with butter yellow
+        screen.fill(BUTTER_YELLOW)
+
+        #Render and position the game title
+        title_surface= pixel_font.render("NASA Farm", True,(53, 94, 59))
+        title_rect = title_surface.get_rect()
+        title_rect.center= (screen.get_width()/2,screen.get_height()/5)
+        screen.blit(title_surface,title_rect)
+
+        #Render and position the Help text
+        play_surface=pixel_font.render("Play", True,(53, 94, 59))
+        play_rect = play_surface.get_rect()
+        play_rect.center= (screen.get_width()/4,screen.get_height()/2)
+        screen.blit(play_surface,play_rect)
+
+        #Render the title text "Help"
+        help_surface=pixel_font.render("Help", True,(53, 94, 59))
+        help_rect = help_surface.get_rect()
+        help_rect.center= (screen.get_width()*3/4,screen.get_height()/2)
+        screen.blit(help_surface,help_rect)
+
+        #Handle user input
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running=False
+            if event.type== pygame.MOUSEBUTTONDOWN:
+                mouse_pos=pygame.mouse.get_pos()
+                if help_rect.collidepoint(mouse_pos):
+                    if show_help(screen,pixel_font):
+                        running= False
+
+                #If PLay is clicked, print message, havent added clicking functionality to go to field
+                elif play_rect.collidepoint(mouse_pos):
+                    print("Play clicked!")
+
+        #Draw soil banner across bottom of screen
+        soil_rect1 = soil_banner.get_rect()
+        soil_rect1.bottomleft = (0,screen.get_height())
+        soil_rect2 = soil_banner.get_rect()
+        soil_rect2.bottomleft = (400,screen.get_height())
+
+        screen.blit(soil_banner,soil_rect1)
+        screen.blit(soil_banner, soil_rect2)
+        pygame.display.update()
+#Launche main menu
+main_page()
+pygame.quit()  # exit pygame when done       
