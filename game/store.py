@@ -54,9 +54,9 @@ class ShopPopup:
             {"name": "Lentil Seeds",   "price": 15, "stock": 5},
         ]
         self.store_ferts: List[Dict] = [
-            {"name": "Fertiliser A", "price": 25, "stock": 6},
-            {"name": "Fertiliser B", "price": 35, "stock": 5},
-            {"name": "Fertiliser C", "price": 50, "stock": 3},
+            {"name": "Nitrogen", "price": 25, "stock": 6},
+            {"name": "Phosphorus", "price": 35, "stock": 5},
+            {"name": "Potassium", "price": 50, "stock": 3},
         ]
         self.store_tools: List[Dict] = [
             {"name": "Hoe",          "price": 40, "stock": 3, "color": (255,170,80)},
@@ -71,7 +71,11 @@ class ShopPopup:
             {"name": "Potato Seeds",   "qty": 0, "price": 12},
             {"name": "Tomato Seeds",   "qty": 0, "price": 6},
             {"name": "Cucumber Seeds", "qty": 0, "price": 10},
+
+            {"name": "Lentil Seeds",  "qty": 0, "price": 20},]
+
             {"name": "Lentils Seeds",  "qty": 0, "price": 20},]
+
         self.inv_ferts: List[Dict] = []
         self.inv_tools: List[Dict] = []
         self.inv_crops: List[Dict] = [
@@ -170,6 +174,7 @@ class ShopPopup:
     # ---------------- drawing primitives ----------------
     def _draw_tab_button(self, surface, rect, label, active):
         pygame.draw.rect(surface, COL_BTN_ACTIVE if active else COL_BTN, rect)
+
         #pygame.draw.rect(surface, COL_PANEL_BORDER, rect, 2)
         surface.blit(self.font_tab.render(label, True, COL_TEXT), (rect.x + 6, rect.y + 4))
 

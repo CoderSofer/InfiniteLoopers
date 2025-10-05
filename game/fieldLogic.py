@@ -6,19 +6,19 @@ import os
 
 # ---- Config / data ----
 SOIL_LABELS = ["Loose & well-draining", "Rich & well-draining", "Deep & Loose", "Loamy", "Well-draining"]
-SOIL_COLORS = [(139,69,19), (160,82,45), (205,133,63), (222,184,135), (244,164,96)]
+
 
 PLANT_LABELS = ["Carrots", "Potatoes", "Tomatoes", "Cucumbers", "Lentils"]
 PLANT_COLORS = [(237,145,33), (255,251,149), (255,99,71), (103,171,5), (126,105,95)]
 
-FERT_LABELS = [f"Fertiliser{i+1}" for i in range(3)]
+FERT_LABELS = ["Nitrogen", "Phosphorus", "potassium"]
 FERT_COLORS = [(255,215,0), (128,128,128), (255,255,255)]
 
 # Which soils are valid for each plant index
 ALLOWED_SOILS = {
-    0: [2],      # Carrots: Deep and Lose, Lose and well-draining
-    1: [0],      # Potatoes: Lose and well-draining, Well-draining
-    2: [1],      # Tomatoes: Rich and well-draining, Well-draining
+    0: [2],      # Carrots: Deep and Lose
+    1: [0],      # Potatoes: Lose and well-draining
+    2: [1],      # Tomatoes: Rich and well-draining
     3: [3],         # Cucumbers: Loamy
     4: [4]          # Lentils: Well-draining
 }
@@ -48,10 +48,13 @@ PLANT_IMAGES = []
 for i in range(5):
     img_path = os.path.join(os.path.dirname(__file__), f'..', f'plant{i+1}.png')
     img = pygame.image.load(img_path)
+
+
     # p_size = (int(img.get_width() *0.8), int(img.get_height() *0.8))
     # img = pygame.transform.smoothscale(img, p_size)
     img = pygame.transform.smoothscale(img, (100,100))
     PLANT_IMAGES.append(img)
+
 
 # ---- Shop button helpers ----
 def make_shop_button_rect(start_x, start_y, cols, rows, tile_size, gap,
@@ -218,6 +221,7 @@ class FieldScene:
             if not self.tab_active:
                 for t in self.tiles:
                     if t.rect.collidepoint(pos):
+                        if self.sfx: self.sfx.play("CLICK")
                         # harvest if grown
                         if t.plant is not None and t.grown:
                             # Add harvested crop to inventory
@@ -235,14 +239,18 @@ class FieldScene:
             else:
                 # switch tabs
                 if self.ui.get("soil_btn") and self.ui["soil_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "soil"
                 if self.ui.get("plant_btn") and self.ui["plant_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "plants"
                 if self.ui.get("fert_btn") and self.ui["fert_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.active_tab = "fertiliser"
 
                 # close
                 if self.ui.get("close_btn") and self.ui["close_btn"].collidepoint(pos):
+                    if self.sfx: self.sfx.play("CLICK")
                     self.tab_active = False
                     self.selected = None
                     return
@@ -253,6 +261,7 @@ class FieldScene:
                     if rect.collidepoint(pos):
                         if self.active_tab == "soil":
                             self.selected.soil = idx
+                            if self.sfx: self.sfx.play("PICK")
                         elif self.active_tab == "plants":
                             # Only allow planting if you own the seed
                             if self.shop:

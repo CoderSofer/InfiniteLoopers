@@ -1,4 +1,7 @@
 import pygame
+from .helpPage import show_help
+
+from game.sounds import SoundBank 
 import pygame_menu
 from pygame_menu import themes
 from .helpPage import show_help
@@ -9,11 +12,14 @@ pygame.init()
 soil_banner = pygame.image.load("./images/soil_banner.png")
 soil_banner = pygame.transform.scale(soil_banner, (400,150))
 
+sfx = SoundBank(volume=0.9)
+sfx.load() 
+
 #Set up the game window and load font
 screen = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Farm Game")
 pixel_font=pygame.font.Font("pixel_Font.ttf",100)
-
+sfx = sfx
 
 
 #Define butter yellow color for background
@@ -55,10 +61,12 @@ def main_page():
             if event.type== pygame.MOUSEBUTTONDOWN:
                 mouse_pos=pygame.mouse.get_pos()
                 if help_rect.collidepoint(mouse_pos):
-                    show_help(screen, pixel_font)
+                    if sfx: sfx.play("CLICK")
+                    show_help(screen, pixel_font, sfx)
 
                 #If PLay is clicked, print message, havent added clicking functionality to go to field
                 elif play_rect.collidepoint(mouse_pos):
+                    if sfx: sfx.play("CLICK")
                     return "PLAY"
 
         #Draw soil banner across bottom of screen
