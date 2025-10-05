@@ -14,9 +14,23 @@ fonts = {
     "title": pygame.font.SysFont(None, 22),  
 }
 
+<<<<<<< Updated upstream
 field = FieldScene(screen.get_size(), fonts=fonts)
 STATE = "HOME"
 home_ui = {}
+=======
+shop = ShopPopup(fonts={"tab": fonts["tab"], "title": fonts["title"]})
+field = FieldScene(screen.get_size(), fonts=fonts, shop=shop, sfx=sfx)
+book = BookScene(screen) 
+
+# Show your homepage first, then start FIELD if Play is clicked
+action = main_page()
+if action == "QUIT":
+    pygame.quit()
+    raise SystemExit
+STATE = "FIELD"
+
+>>>>>>> Stashed changes
 running = True
 
 shop = ShopPopup(fonts={"tab": fonts["tab"], "title": fonts["title"]})
