@@ -141,11 +141,12 @@ class Items():
 
             # add value to rectangle
 
-            self.produceText(text_font_size, self.item_list[key]["rect"], "value: " + str(self.item_list[key]["value"]))
+            self.produceText(text_font_size, self.item_list[key]["rect"], str(key))
 
             pygame.display.update()
 
         self.SPACING = 0
+        self.VERTICAL_SPACING = 0
 
 class createButtons():
 
