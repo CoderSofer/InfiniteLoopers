@@ -1,14 +1,16 @@
 import pygame
 
+
+# havent had the chance to fully fix this but yeah.
+
 once = 0
 fonts = {}
 
 sounds = {
     "BUY" : "./game//soundfiles/buy2.wav",
     "CLICK" : "./game//soundfiles/click1.wav",
-    "PICK" : "./game//soundfiles/pick2.wav",
     "HARVEST" : "./game/soundfiles/harvest4.wav",
-    "PLANT" : 0
+    "PLANT" : "./game//soundfiles/pick2.wav"
 }
 
 def playSound(sound):
@@ -30,12 +32,7 @@ def createRectangle():
     rect = pygame.draw.rect(screen, (255,5,5), pygame.Rect(xpos, screen.get_height()/2 - rectangleheight/2, rectanglewidth ,rectangleheight))
     return rect
 
-def popup(rect, mousex, mousey):
-    global once
-    global fonts
-
-    if not (rect.collidepoint(mousex,mousey)):
-        return fonts
+def popup():
 
     font = pygame.font.Font(None, 36)
 
@@ -75,46 +72,25 @@ def popup(rect, mousex, mousey):
         screen.blit(fonts[key]["render"], fonts[key]["position"])
     
     pygame.display.update()
-    once = 1
 
-    print("works")
     return fonts
 
-def HarvestFunctionality(mousex, mousey):
-    global once
-    global fonts
-    
-    if fonts["Harvest"]["position"].collidepoint(mousex, mousey):
-        playSound(sounds["HARVEST"])
-        clearText()
-        once = 0
+def HarvestFunctionality():
+    playSound(sounds["HARVEST"])
+    clearText()
 
-def SellFunctionality(mousex, mousey):
-    global once
-    global fonts
+def SellFunctionality():
+    playSound(sounds["BUY"])
+    clearText()
 
-    if fonts["Sell"]["position"].collidepoint(mousex, mousey):
-        playSound(sounds["BUY"])
-        clearText()
-        once = 0
+def PlantFunctionality():
+    playSound(sounds["PLANT"])
+    clearText()
 
-def PlantFunctionality(mousex, mousey):
-    global once
-    global fonts
-
-    if fonts["Plant"]["position"].collidepoint(mousex, mousey):
-        playSound(sounds["PICK"])
-        clearText()
-        once = 0
-
-def ExitFunctionality(mousex, mousey):
-    global once
-    global fonts
-    
-    if fonts["Exit"]["position"].collidepoint(mousex, mousey):
-        playSound(sounds["CLICK"])
-        clearText()
-        once = 0
+def ExitFunctionality():
+    playSound(sounds["CLICK"])
+    screen.fill((255,0,0))
+    clearText()
 
 pygame.init()
 pygame.mixer.init()
@@ -132,30 +108,32 @@ while running:
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
 
-            mousex, mousey = pygame.mouse.get_pos()
+            mouse = pygame.mouse.get_pos()
 
-            if once == 0:
-                fonts = popup(rect, mousex,mousey)
+            if rect.collidepoint(mouse):
 
-                print("Exit position:", type(fonts["Exit"]["position"]))
-
-
-            else:
-                if not fonts:
-                    continue
-
-                if "Exit" in fonts and fonts["Exit"]["position"].collidepoint(mousex, mousey):
-                    ExitFunctionality(mousex, mousey)
-                    continue
-                elif "Plant" in fonts and fonts["Plant"]["position"].collidepoint(mousex, mousey):
-                    PlantFunctionality(mousex, mousey)
-                    continue
-                elif "Sell" in fonts and fonts["Sell"]["position"].collidepoint(mousex, mousey):
-                    SellFunctionality(mousex, mousey)
-                    continue
-                elif "Harvest" in fonts and fonts["Harvest"]["position"].collidepoint(mousex, mousey):
-                    HarvestFunctionality(mousex, mousey)
-                    continue
+                if once < 1:
+                    popup()
+                    once += 1
+                else:
+                    if not fonts:
+                        print("error")
+                        continue
+            
+            if once >= 1 :
+                if "Exit" in fonts and fonts["Exit"]["position"].collidepoint(mouse):
+                    ExitFunctionality()
+                    once = 0
+                elif "Plant" in fonts and fonts["Plant"]["position"].collidepoint(mouse):
+                    PlantFunctionality()
+                    once = 0
+                elif "Sell" in fonts and fonts["Sell"]["position"].collidepoint(mouse):
+                    SellFunctionality()
+                    once = 0
+                elif "Harvest" in fonts and fonts["Harvest"]["position"].collidepoint(mouse):
+                    HarvestFunctionality()
+                    once = 0
+                    
 
 
 pygame.quit()
